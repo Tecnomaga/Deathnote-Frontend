@@ -186,7 +186,6 @@
     .referral-list { max-height: 200px; overflow-y: auto; margin-top: 8px; }
     .referral-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; }
 
-    /* Celebrate overlay */
     .celebrate-overlay {
       position: fixed; inset: 0; z-index: 500; pointer-events: none; display: flex; align-items: center; justify-content: center;
       font-size: 60px; color: #ffd700; text-shadow: 0 0 30px #ffd700; animation: celebratePop 0.8s ease-out forwards;
@@ -384,14 +383,12 @@ function toggleAudio() {
 
 // ====== CELEBRAÇÃO ======
 function celebrate(message) {
-  // overlay com emoji
   const overlay = document.createElement('div');
   overlay.className = 'celebrate-overlay';
   overlay.textContent = message || '🎉';
   document.body.appendChild(overlay);
   setTimeout(() => overlay.remove(), 900);
 
-  // confetes
   for (let i = 0; i < 15; i++) {
     const confetti = document.createElement('div');
     confetti.className = 'confetti-piece';
@@ -594,7 +591,7 @@ async function renderDashboard() {
   const kiraLevel = Math.floor((userData.kiraXP || 0) / 5);
   const title = getTitle(userData.kiraXP);
   const prisonMsg = userData.prisonDays > 0 ? `<div class="glass-card" style="background:rgba(180,0,0,0.3);text-align:center;">🔒 Preso por ${userData.prisonDays} dia(s).</div>` : '';
-  
+
   let offerBtn = '';
   if (!userData.hasSurvivalKit) {
     offerBtn = `<button class="btn-game btn-offer" style="grid-column:1/-1;min-height:100px;margin-bottom:12px;" onclick="buySurvivalKit()">
@@ -955,16 +952,16 @@ async function submitDeposit(){
   });
 }
 
-// --- WITHDRAW (com BRL) ---
+// --- WITHDRAW (mínimo 2 GRAM, com BRL) ---
 function renderWithdraw() {
   document.getElementById('screen-withdraw').innerHTML = `
     <div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Saque</div></div>
     <div class="glass-card" style="padding:18px;text-align:center;">
       <p style="font-size:18px;color:var(--rot-gold-light);">📤 Saldo: <b>${(userData?.balance||0).toFixed(2)} 🍎 GRAM</b> <span style="font-size:0.8em;color:#8a9bb5;">${formatBRL(userData?.balance||0)}</span></p>
-      <p style="font-size:14px;color:var(--ash);">Taxa de 5% (inclui rede). Mínimo 1 🍎 GRAM.</p>
+      <p style="font-size:14px;color:var(--ash);">Taxa de 5% (inclui rede). Mínimo 2 🍎 GRAM.</p>
       <p style="font-size:12px;color:var(--ash);">Saques disponíveis apenas entre 08h e 22h (horário de Brasília).</p>
       <input id="withdrawAddr" placeholder="Sua carteira TON" class="large-input">
-      <input id="withdrawAmount" type="number" placeholder="Valor em GRAM" min="1" step="0.1" class="large-input">
+      <input id="withdrawAmount" type="number" placeholder="Valor em GRAM (mín. 2)" min="2" step="0.1" class="large-input">
       <button class="btn-modal" style="width:100%;" onclick="requestWithdraw()">Solicitar Saque</button>
     </div>`;
 }
@@ -972,7 +969,7 @@ function renderWithdraw() {
 async function requestWithdraw(){
   const addr=document.getElementById('withdrawAddr')?.value.trim();
   const amt=parseFloat(document.getElementById('withdrawAmount')?.value);
-  if(!addr||isNaN(amt)||amt<1){showModal('❌','Dados inválidos.');return;}
+  if(!addr||isNaN(amt)||amt<2){showModal('❌','Dados inválidos. Mínimo 2 GRAM.');return;}
   const fee=amt*0.05;
   const total=amt+fee;
   if(userData.balance<total){showModal('❌','Saldo insuficiente.');return;}

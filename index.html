@@ -121,7 +121,6 @@
       80% { transform: translateY(-15px) rotate(-2deg); }
       100% { transform: translateY(0) rotate(-1deg); }
     }
-    /* Animação do botão de oferta */
     @keyframes pulseOffer {
       0% { box-shadow: 0 0 10px #c4172a; transform: scale(1); }
       50% { box-shadow: 0 0 25px #c4172a, 0 0 40px rgba(196,23,42,0.6); transform: scale(1.03); }
@@ -197,6 +196,7 @@
 <div class="writing-overlay" id="writingOverlay"><div class="paper" id="writingPaper"></div></div>
 <div class="modal-overlay" id="modalOverlay"><div class="modal-box" id="modalBox"></div></div>
 
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 <script>
 const canvas=document.getElementById('particleCanvas'),ctx=canvas.getContext('2d');
 let w,h,mx=-1000,my=-1000;
@@ -336,6 +336,91 @@ function getTitle(kiraXP){
   if(level>=10)return 'Kira Respeitado';
   if(level>=5)return 'Justiceiro das Sombras';
   return 'Aspirante a Kira';
+}
+
+// ============ TELEGRAM MINI APP INTEGRAÇÃO ============
+const API_BASE = 'https://deathnote-backend-k6nq.onrender.com/api';
+let authToken = '';
+
+const tg = window.Telegram.WebApp;
+tg.ready();
+tg.expand();
+
+async function apiCall(endpoint, method = 'GET', body = null) {
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': authToken ? `Bearer ${authToken}` : ''
+  };
+  const config = { method, headers };
+  if (body) config.body = JSON.stringify(body);
+  const response = await fetch(`${API_BASE}${endpoint}`, config);
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || 'Erro na requisição');
+  return data;
+}
+
+async function loginWithTelegram() {
+  const initData = tg.initData;
+  if (!initData) {
+    showModal('❌', 'Abra este jogo pelo Telegram!');
+    return false;
+  }
+  try {
+    const result = await apiCall('/auth/telegram', 'POST', { initData });
+    authToken = result.token;
+    return result.user;
+  } catch (error) {
+    showModal('❌', 'Falha na autenticação: ' + error.message);
+    return false;
+  }
+}
+
+async function syncWithBackend() {
+  if (!authToken) return;
+  try {
+    await apiCall('/user/sync', 'POST', {
+      balance: S.gram,
+      suspicion: S.suspicion,
+      eyes: S.eyes,
+      eyesLeft: S.eyesLeft,
+      plays: S.plays,
+      wins: S.wins,
+      losses: S.losses,
+      inventory: S.inventory,
+      slots: S.slots,
+      history: S.history,
+      gachaEpicPity: S.gachaEpicPity,
+      kiraXP: S.kiraXP,
+      failStreak: S.failStreak,
+      dailyClaimed: S.dailyClaimed,
+      dailyStreak: S.dailyStreak,
+      lastDaily: S.lastDaily,
+      prisonDays: S.prisonDays,
+      lastSuspicionUpdate: S.lastSuspicionUpdate,
+      hasStarterPack: S.hasStarterPack,
+      lastPageRefill: S.lastPageRefill || Date.now()
+    });
+  } catch (error) {
+    console.error('Sync falhou:', error);
+  }
+}
+
+function submitDeposit() {
+  const amount = document.getElementById('depositAmount')?.value;
+  const txid = document.getElementById('depositTxid')?.value.trim();
+  if (!amount || !txid) { showModal('❌', 'Preencha valor e TXID.'); return; }
+  apiCall('/deposit', 'POST', { amount: parseFloat(amount), txid })
+    .then(() => showModal('📥', `Comprovante enviado!\nTXID: ${txid}\nAguardando aprovação.`))
+    .catch(err => showModal('❌', err.message));
+}
+
+function requestWithdraw() {
+  const addr = document.getElementById('withdrawAddr')?.value.trim();
+  const amt = parseFloat(document.getElementById('withdrawAmount')?.value);
+  if (!addr || isNaN(amt) || amt < 1) { showModal('❌', 'Dados inválidos.'); return; }
+  apiCall('/withdraw', 'POST', { address: addr, amount: amt })
+    .then(() => showModal('📤', `Saque de ${amt} TON solicitado!`))
+    .catch(err => showModal('❌', err.message));
 }
 
 function setScreen(id){
@@ -686,22 +771,6 @@ function activateNb(id){
   saveState();setScreen('inventory');
 }
 function copyWallet(){navigator.clipboard.writeText(WALLET_ADDRESS).then(()=>showModal('✅','Copiado!')).catch(()=>showModal('❌','Erro.'));}
-function submitDeposit(){
-  const amount=document.getElementById('depositAmount')?.value;
-  const txid=document.getElementById('depositTxid')?.value.trim();
-  if(!amount||!txid){showModal('❌','Preencha valor e TXID.');return}
-  showModal('📥',`Comprovante de ${amount} TON enviado.\nTXID: ${txid}\nAguardando aprovação.`);
-}
-function requestWithdraw(){
-  const addr=document.getElementById('withdrawAddr')?.value.trim();
-  const amt=parseFloat(document.getElementById('withdrawAmount')?.value);
-  if(!addr||isNaN(amt)||amt<1){showModal('❌','Dados inválidos.');return}
-  const fee=amt*0.05,total=amt+fee;
-  if(S.gram<total){showModal('❌',`Saldo insuficiente. Necessário ${total.toFixed(2)} TON.`);return}
-  S.gram-=total;
-  showModal('📤',`Saque de ${amt.toFixed(2)} TON solicitado.\nTaxa: ${fee.toFixed(2)} TON.\nProcessaremos manualmente.`);
-  saveState();setScreen('withdraw');
-}
 
 function claimDaily(){
   const nb=activeNb();
@@ -727,9 +796,24 @@ function showModal(icon,msg){
   document.getElementById('modalOverlay').classList.add('overlay-active');
 }
 
-window.onload=()=>{
-  setScreen('intro');
-  document.getElementById('modalOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('overlay-active');});
+window.onload = async () => {
+  const user = await loginWithTelegram();
+  if (user) {
+    // carregar estado do backend se necessário
+    setScreen('intro');
+  } else {
+    // se falhar autenticação, mostrar tela de erro? mas já mostrou modal
+    setScreen('intro');
+  }
+  document.getElementById('modalOverlay').addEventListener('click', e => {
+    if (e.target === e.currentTarget) e.currentTarget.classList.remove('overlay-active');
+  });
+  setInterval(syncWithBackend, 30000);
+  tg.BackButton.onClick(() => {
+    if (S.screen !== 'intro' && S.screen !== 'dashboard') setScreen('dashboard');
+    else tg.close();
+  });
+  tg.BackButton.show();
 };
 </script>
 </body>

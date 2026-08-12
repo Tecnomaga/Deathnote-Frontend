@@ -213,7 +213,7 @@ for(let i=0;i<45;i++)particles.push(new Particle());
 function anim(){ctx.clearRect(0,0,w,h);particles.forEach(p=>{p.update();p.draw(ctx);});requestAnimationFrame(anim);}
 anim();
 
-const STORAGE_KEY='dn_pte_final7';
+const STORAGE_KEY='dn_pte_final8';
 const WALLET_ADDRESS='UQCA7IxtVOJ-YQhpOv_y8bVPAG5S7Fb0eFH8Mwre5dt_IHML';
 const MAX_SLOTS=5;
 
@@ -382,7 +382,6 @@ async function loginWithTelegram() {
     const result = await apiCall('/auth/telegram', 'POST', { initData });
     authToken = result.token;
     currentUser = result.user;
-    // Salvar código de referral
     if (!S.referralCode) {
       S.referralCode = `${result.user.username || 'user'}${result.user.telegramId}`;
       saveState();
@@ -391,6 +390,22 @@ async function loginWithTelegram() {
   } catch (error) {
     showModal('❌', 'Falha na autenticação: ' + error.message);
     return false;
+  }
+}
+
+async function loadBalanceFromBackend() {
+  if (!authToken) return;
+  try {
+    const user = await apiCall('/user/me', 'GET');
+    if (user && user.balance !== undefined) {
+      S.gram = user.balance;
+      saveState();
+      if (document.getElementById('screen-dashboard').classList.contains('active')) {
+        renderDashboard();
+      }
+    }
+  } catch (error) {
+    console.error('Erro ao carregar saldo:', error);
   }
 }
 
@@ -427,7 +442,6 @@ async function syncWithBackend() {
   }
 }
 
-// Função de confirmação genérica
 function confirmAction(title, message, onConfirm) {
   document.getElementById('modalBox').innerHTML = `
     <div style="font-size:40px;">⚠️</div>
@@ -875,6 +889,7 @@ function showModal(icon,msg){
 window.onload = async () => {
   const user = await loginWithTelegram();
   if (user) {
+    await loadBalanceFromBackend();
     setScreen('intro');
   } else {
     setScreen('intro');
@@ -883,8 +898,8 @@ window.onload = async () => {
     if (e.target === e.currentTarget) e.currentTarget.classList.remove('overlay-active');
   });
   setInterval(syncWithBackend, 30000);
+  setInterval(loadBalanceFromBackend, 30000);
 
-  // Botão voltar do Telegram
   tg.BackButton.onClick(() => {
     const currentScreen = document.querySelector('.screen.active');
     if (currentScreen && currentScreen.id === 'screen-dashboard') {

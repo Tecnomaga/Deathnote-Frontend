@@ -165,6 +165,10 @@
     .text-rare { color: #4da6ff; }
     .text-epic { color: #cc9ee6; }
     .text-legendary { color: #ffd700; }
+
+    .tab-row { display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap; justify-content: center; }
+    .tab-btn { background: #2a3a4e; border: 2px solid #4a5a6e; color: #fff; padding: 6px 10px; font-family: 'Cinzel', serif; font-size: 11px; cursor: pointer; border-radius: 4px; }
+    .tab-btn.active { border-color: var(--rot-gold); background: #3a4a5e; color: var(--rot-gold-light); }
   </style>
 </head>
 <body>
@@ -198,6 +202,7 @@
   <div id="screen-profile" class="screen"></div>
   <div id="screen-referral" class="screen"></div>
   <div id="screen-history" class="screen"></div>
+  <div id="screen-ranking" class="screen"></div>
 </div>
 
 <div class="writing-overlay" id="writingOverlay"><div class="paper" id="writingPaper"></div></div>
@@ -214,7 +219,7 @@ let targets = [];
 let targetIndex = null;
 let gramPriceUSD = null;
 
-// ====== ÁUDIO (vento, máquina escrever, batida cardíaca, portal) ======
+// ====== ÁUDIO ======
 let audioCtx = null;
 let audioEnabled = true;
 
@@ -346,7 +351,6 @@ const tg = window.Telegram.WebApp;
 tg.ready();
 tg.expand();
 
-// Captura o start_param da URL (adicionado pelo webhook do bot)
 function getStartParam() {
   const params = new URLSearchParams(window.location.search);
   return params.get('start_param') || '';
@@ -368,10 +372,7 @@ async function loginWithTelegram() {
   if (!initData) { showModal('❌', 'Abra este jogo pelo Telegram!'); return false; }
   try {
     const startParam = getStartParam();
-    const result = await apiCall('/auth/telegram', 'POST', { 
-      initData, 
-      startParamFromUrl: startParam 
-    });
+    const result = await apiCall('/auth/telegram', 'POST', { initData, startParamFromUrl: startParam });
     authToken = result.token;
     userData = result.user;
     sessionStorage.setItem('auth_token', authToken);
@@ -387,7 +388,6 @@ async function refreshUser() {
   } catch(e) {}
 }
 
-// Cotação em tempo real via CoinGecko
 async function updateGramPrice() {
   try {
     const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=toncoin&vs_currencies=usd');
@@ -473,7 +473,8 @@ function updateScreenContent(id) {
     intro: renderIntro, tutorial: renderTutorial, dashboard: renderDashboard,
     targets: renderTargets, gacha: renderGacha, shop: renderShop,
     inventory: renderInventory, deposit: renderDeposit, withdraw: renderWithdraw,
-    profile: renderProfile, referral: renderReferral, history: renderHistory
+    profile: renderProfile, referral: renderReferral, history: renderHistory,
+    ranking: renderRanking
   };
   if (fn[id]) fn[id]();
 }
@@ -554,6 +555,7 @@ async function renderDashboard() {
       <button class="btn-game" onclick="setScreen('profile')">🎭 Perfil</button>
       <button class="btn-game" onclick="setScreen('referral')">👥 Referral</button>
       <button class="btn-game" onclick="setScreen('history')">📜 Histórico</button>
+      <button class="btn-game" onclick="setScreen('ranking')">🏆 Ranking</button>
       <button class="btn-game" onclick="claimDaily()">🎁 Diário</button>
     </div>`;
 }
@@ -875,11 +877,12 @@ function renderProfile() {
     </div>`;
 }
 
-// --- REFERRAL ---
+// --- REFERRAL (com lista de indicados) ---
 async function renderReferral() {
   if(!userData)return;
-  let refData;
+  let refData, referralsList = [];
   try{refData=await apiCall('/user/referral');}catch(e){refData={};}
+  try{referralsList=await apiCall('/user/referrals');}catch(e){}
   const refCode = userData.telegramId || userData._id;
   const refLink = `https://t.me/Deathnotegods_bot?start=ref_${refCode}`;
   document.getElementById('screen-referral').innerHTML = `
@@ -891,21 +894,92 @@ async function renderReferral() {
       <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:12px;margin:10px 0;word-break:break-all;font-family:monospace;font-size:13px;">${escapeHtml(refLink)}</div>
       <button class="copy-btn" onclick="copyRef('${escapeHtml(refLink)}')">📋 Copiar Link</button>
       <p style="font-size:13px;color:var(--ash);margin-top:14px;">Ganhos: <b style="color:#c9a03a;">${(refData.referralEarnings||0).toFixed(2)} 🍎 GRAM</b></p>
+    </div>
+    <div class="glass-card" style="padding:16px;">
+      <h3 style="color:var(--rot-gold-light);margin-bottom:8px;">👤 Indicados</h3>
+      ${referralsList.length === 0 ? '<p style="color:var(--ash);">Nenhum indicado ainda.</p>' :
+        referralsList.map(r => `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
+            <span>${escapeHtml(r.username)}</span>
+            <span style="color:#c9a03a;font-size:12px;">+${r.commissionEarned} 🍎</span>
+          </div>`).join('')
+      }
     </div>`;
 }
 
 function copyRef(link){navigator.clipboard.writeText(link).then(()=>showModal('✅','Link copiado!')).catch(()=>showModal('❌','Erro.'));}
 
-// --- HISTORY ---
-function renderHistory() {
+// --- HISTORY (com abas Execuções e Transações) ---
+async function renderHistory() {
   const el=document.getElementById('screen-history');
-  el.innerHTML='<div class="app-header"><button class="back-btn" onclick="setScreen(\'dashboard\')">←</button><div class="logo">Histórico</div></div>';
-  if(!userData?.history?.length){el.innerHTML+='<div class="glass-card" style="text-align:center;color:var(--ash);">Nenhuma execução ainda.</div>';return;}
-  el.innerHTML+=userData.history.slice().reverse().map(h=>`
-    <div class="glass-card" style="display:flex;justify-content:space-between;align-items:center;">
-      <span>${escapeHtml(h.target)} <span class="rarity-badge rarity-${h.rarity}">${h.rarity}</span></span>
-      <span style="color:${h.success?'#7cb87c':'#e07070'}">${h.success?'✅ +'+h.reward+' 🍎 GRAM':'❌ Falhou'}</span>
-    </div>`).join('');
+  let transactions = [];
+  try { transactions = await apiCall('/user/transactions'); } catch(e) {}
+
+  el.innerHTML = `
+    <div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Histórico</div></div>
+    <div class="tab-row">
+      <button class="tab-btn active" id="tabExecucoes" onclick="switchHistoryTab('execucoes')">📜 Execuções</button>
+      <button class="tab-btn" id="tabTransacoes" onclick="switchHistoryTab('transacoes')">💳 Transações</button>
+    </div>
+    <div id="historyExecucoes">
+      ${(!userData?.history?.length) ? '<div class="glass-card" style="text-align:center;color:var(--ash);">Nenhuma execução ainda.</div>' :
+        userData.history.slice().reverse().map(h => `
+          <div class="glass-card" style="display:flex;justify-content:space-between;align-items:center;">
+            <span>${escapeHtml(h.target)} <span class="rarity-badge rarity-${h.rarity}">${h.rarity}</span></span>
+            <span style="color:${h.success?'#7cb87c':'#e07070'}">${h.success?'✅ +'+h.reward+' 🍎 GRAM':'❌ Falhou'}</span>
+          </div>`).join('')
+      }
+    </div>
+    <div id="historyTransacoes" style="display:none;">
+      ${transactions.length === 0 ? '<div class="glass-card" style="text-align:center;color:var(--ash);">Nenhuma transação.</div>' :
+        transactions.map(tx => `
+          <div class="glass-card" style="display:flex;justify-content:space-between;align-items:center;">
+            <span>${tx.type==='deposit'?'📥 Depósito':'📤 Saque'}</span>
+            <span style="color:#c9a03a;">${tx.amount} 🍎</span>
+            <span class="status-${tx.status}" style="font-size:11px;">${tx.status==='pending'?'⏳':tx.status==='approved'?'✅':'❌'}</span>
+          </div>`).join('')
+      }
+    </div>`;
+}
+
+function switchHistoryTab(tab) {
+  document.getElementById('tabExecucoes').classList.toggle('active', tab==='execucoes');
+  document.getElementById('tabTransacoes').classList.toggle('active', tab==='transacoes');
+  document.getElementById('historyExecucoes').style.display = tab==='execucoes'?'block':'none';
+  document.getElementById('historyTransacoes').style.display = tab==='transacoes'?'block':'none';
+}
+
+// --- RANKING ---
+async function renderRanking() {
+  let rankingData = { topBalance: [], topWins: [] };
+  try { rankingData = await apiCall('/ranking'); } catch(e) {}
+  document.getElementById('screen-ranking').innerHTML = `
+    <div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">🏆 Ranking</div></div>
+    <div class="tab-row">
+      <button class="tab-btn active" id="tabSaldo" onclick="switchRankTab('saldo')">💰 Saldo</button>
+      <button class="tab-btn" id="tabExecucoesRank" onclick="switchRankTab('execucoes')">💀 Execuções</button>
+    </div>
+    <div id="rankSaldo">
+      ${rankingData.topBalance.map((u,i) => `
+        <div class="glass-card" style="display:flex;justify-content:space-between;align-items:center;">
+          <span>#${i+1} ${escapeHtml(u.username||'Anônimo')}</span>
+          <span style="color:#c9a03a;">${(u.balance||0).toFixed(2)} 🍎</span>
+        </div>`).join('')}
+    </div>
+    <div id="rankExecucoes" style="display:none;">
+      ${rankingData.topWins.map((u,i) => `
+        <div class="glass-card" style="display:flex;justify-content:space-between;align-items:center;">
+          <span>#${i+1} ${escapeHtml(u.username||'Anônimo')}</span>
+          <span style="color:#e07070;">${u.wins||0} 💀</span>
+        </div>`).join('')}
+    </div>`;
+}
+
+function switchRankTab(tab) {
+  document.getElementById('tabSaldo').classList.toggle('active', tab==='saldo');
+  document.getElementById('tabExecucoesRank').classList.toggle('active', tab==='execucoes');
+  document.getElementById('rankSaldo').style.display = tab==='saldo'?'block':'none';
+  document.getElementById('rankExecucoes').style.display = tab==='execucoes'?'block':'none';
 }
 
 // --- DAILY ---

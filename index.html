@@ -150,7 +150,7 @@
     }
 
     .suspicion-bar { width: 100%; height: 8px; background: rgba(255,255,255,0.25); border-radius: 4px; margin: 6px 0 12px; overflow: hidden; }
-    .suspicion-fill { height: 100%; background: linear-gradient(90deg, #c4172a, #e07070); border-radius: 4px; transition: width 0.5s; }
+    .suspicion-fill { height: 100%; background: linear-gradient(90deg, #c4172a, #e07070); border-radius: 4px; transition: width 0.5s; min-width: 2px; }
 
     .price-info { text-align: center; font-size: 13px; color: var(--ash); margin-bottom: 12px; background: rgba(255,255,255,0.03); padding: 8px; border-radius: 4px; }
 
@@ -214,48 +214,12 @@ let targets = [];
 let targetIndex = null;
 let gramPriceUSD = null;
 
-// ====== ÁUDIO IMERSIVO (vento grave, máquina de escrever, batida cardíaca) ======
+// ====== ÁUDIO (apenas efeitos pontuais, sem drone) ======
 let audioCtx = null;
 let audioEnabled = true;
-let ambientDrone = null;
-let ambientGain = null;
 
 function initAudio() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-}
-
-function startAmbient() {
-  if (!audioEnabled || !audioCtx || ambientDrone) return;
-  ambientDrone = audioCtx.createOscillator();
-  ambientGain = audioCtx.createGain();
-  ambientDrone.type = 'sawtooth';
-  ambientDrone.frequency.setValueAtTime(55, audioCtx.currentTime);
-  const lfo = audioCtx.createOscillator();
-  const lfoGain = audioCtx.createGain();
-  lfo.frequency.setValueAtTime(0.2, audioCtx.currentTime);
-  lfoGain.gain.setValueAtTime(15, audioCtx.currentTime);
-  lfo.connect(lfoGain);
-  lfoGain.connect(ambientDrone.detune);
-  lfo.start();
-
-  ambientGain.gain.setValueAtTime(0.02, audioCtx.currentTime);
-  ambientDrone.connect(ambientGain);
-  ambientGain.connect(audioCtx.destination);
-  ambientDrone.start();
-}
-
-function stopAmbient() {
-  if (ambientDrone) {
-    ambientGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
-    setTimeout(() => {
-      if (ambientDrone) {
-        ambientDrone.stop();
-        ambientDrone.disconnect();
-        ambientDrone = null;
-        ambientGain = null;
-      }
-    }, 600);
-  }
 }
 
 function sfxTypewriter() {
@@ -284,7 +248,6 @@ function sfxHeartbeat() {
   gain.connect(audioCtx.destination);
   osc.start();
   osc.stop(audioCtx.currentTime + 0.1);
-  // segunda batida mais fraca
   setTimeout(() => {
     if (!audioEnabled || !audioCtx) return;
     const osc2 = audioCtx.createOscillator();
@@ -363,11 +326,6 @@ function toggleAudio() {
   initAudio();
   audioEnabled = !audioEnabled;
   document.getElementById('audioToggle').textContent = audioEnabled ? '🔊' : '🔇';
-  if (audioEnabled) {
-    startAmbient();
-  } else {
-    stopAmbient();
-  }
 }
 
 // ====== PARTÍCULAS ======
@@ -399,10 +357,22 @@ async function apiCall(endpoint, method = 'GET', body = null) {
   return data;
 }
 
+function getReferrerFromUrl() {
+  // Tenta pegar de start_param do Telegram
+  let ref = tg.initDataUnsafe?.start_param;
+  // Se não existir, tenta da query string (?start=ref_...)
+  if (!ref) {
+    const params = new URLSearchParams(window.location.search);
+    ref = params.get('start');
+  }
+  return ref || '';
+}
+
 async function loginWithTelegram() {
   const initData = tg.initData;
   if (!initData) { showModal('❌', 'Abra este jogo pelo Telegram!'); return false; }
   try {
+    // Envia o start_param capturado para o backend
     const result = await apiCall('/auth/telegram', 'POST', { initData });
     authToken = result.token;
     userData = result.user;
@@ -448,12 +418,6 @@ function setScreen(id) {
   const screen = document.getElementById('screen-' + id);
   if (screen) screen.classList.add('active');
   updateScreenContent(id);
-  // Iniciar drone ambiente em telas principais, parar na escrita (gerenciado separadamente)
-  if (['dashboard', 'targets', 'gacha', 'shop', 'inventory', 'deposit', 'withdraw', 'profile', 'referral', 'history'].includes(id)) {
-    startAmbient();
-  } else {
-    stopAmbient();
-  }
 }
 
 function showNotification(msg) {
@@ -527,7 +491,7 @@ function renderIntro() {
       <div style="font-family:'Special Elite',monospace;font-size:11px;letter-spacing:5px;text-transform:uppercase;color:#8a8a8a;margin-top:8px;">O caderno escolheu você</div>
       <div style="width:140px;height:1px;background:linear-gradient(90deg,transparent,var(--blood-bright),transparent);margin:18px 0;position:relative;"><span style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:11px;color:var(--blood-bright);background:var(--abyss);padding:0 8px;">死</span></div>
       <div style="font-family:'Yuji Syuku',serif;font-size:14px;color:var(--ash);max-width:280px;line-height:1.75;">"O nome escrito neste caderno terá seu coração parado em 40 segundos."</div>
-      <button onclick="startAmbient(); setScreen('tutorial')" style="margin-top:22px;padding:14px 42px;background:transparent;border:1px solid var(--blood-bright);border-radius:2px 10px 2px 10px;color:var(--bone);font-family:'Special Elite',monospace;font-size:14px;letter-spacing:3px;text-transform:uppercase;cursor:pointer;">Abrir o Caderno</button>
+      <button onclick="setScreen('tutorial')" style="margin-top:22px;padding:14px 42px;background:transparent;border:1px solid var(--blood-bright);border-radius:2px 10px 2px 10px;color:var(--bone);font-family:'Special Elite',monospace;font-size:14px;letter-spacing:3px;text-transform:uppercase;cursor:pointer;">Abrir o Caderno</button>
     </div>`;
 }
 
@@ -550,8 +514,8 @@ function renderTutorial() {
 
 // --- DASHBOARD ---
 async function renderDashboard() {
-  await refreshUser();
-  await fetchPrice();
+  await fetchPrice();         // cotação primeiro
+  await refreshUser();        // depois usuário
   const nb = activeNb();
   if (!nb) { document.getElementById('screen-dashboard').innerHTML = '<p>Erro ao carregar.</p>'; return; }
   const kiraLevel = Math.floor((userData.kiraXP || 0) / 5);
@@ -641,7 +605,6 @@ function startWriting(idx) {
     <div style="margin-top:8px;font-size:11px;color:var(--ash);">Pressione Enter para enviar</div>`;
   document.getElementById('writingOverlay').classList.add('overlay-active');
   document.body.classList.add('writing-active');
-  stopAmbient(); // para o drone durante a escrita
   initAudio();
   setTimeout(()=>document.getElementById('nameInput').focus(),300);
   document.getElementById('nameInput').addEventListener('keydown',async function(e){
@@ -911,13 +874,15 @@ function renderProfile() {
     </div>`;
 }
 
-// --- REFERRAL ---
+// --- REFERRAL (agora com link correto e garantia de captura do start_param) ---
 async function renderReferral() {
   if(!userData)return;
   let refData;
   try{refData=await apiCall('/user/referral');}catch(e){refData={};}
-  const refCode=userData.telegramId||userData._id;
-  const refLink=`https://t.me/Deathnotegods_bot?start=ref_${refCode}`;
+  // O código de referral é o Telegram ID do usuário
+  const refCode = userData.telegramId || userData._id;
+  // Link que força o start com o parâmetro ref_
+  const refLink = `https://t.me/Deathnotegods_bot?start=ref_${refCode}`;
   document.getElementById('screen-referral').innerHTML = `
     <div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Referral</div></div>
     <div class="glass-card" style="text-align:center;padding:18px;">
@@ -964,7 +929,7 @@ async function claimDaily() {
 // ====== INIT ======
 window.onload=async()=>{
   initAudio();
-  // Limpar tokens antigos para evitar conflito entre contas
+  // Limpar tokens antigos para evitar conflito
   localStorage.removeItem('auth_token');
   localStorage.removeItem('admin_token');
   const savedToken=sessionStorage.getItem('auth_token');

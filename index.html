@@ -214,7 +214,7 @@ let targets = [];
 let targetIndex = null;
 let gramPriceUSD = null;
 
-// ====== ÁUDIO (apenas efeitos pontuais, sem drone) ======
+// ====== ÁUDIO (vento, máquina escrever, batida cardíaca, portal) ======
 let audioCtx = null;
 let audioEnabled = true;
 
@@ -346,6 +346,11 @@ const tg = window.Telegram.WebApp;
 tg.ready();
 tg.expand();
 
+// ✅ Captura start_param do Telegram (como Gram Catcher)
+function getReferrerFromUrl() {
+  return tg.initDataUnsafe?.start_param || '';
+}
+
 async function apiCall(endpoint, method = 'GET', body = null) {
   const headers = { 'Content-Type': 'application/json' };
   if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
@@ -357,22 +362,10 @@ async function apiCall(endpoint, method = 'GET', body = null) {
   return data;
 }
 
-function getReferrerFromUrl() {
-  // Tenta pegar de start_param do Telegram
-  let ref = tg.initDataUnsafe?.start_param;
-  // Se não existir, tenta da query string (?start=ref_...)
-  if (!ref) {
-    const params = new URLSearchParams(window.location.search);
-    ref = params.get('start');
-  }
-  return ref || '';
-}
-
 async function loginWithTelegram() {
   const initData = tg.initData;
   if (!initData) { showModal('❌', 'Abra este jogo pelo Telegram!'); return false; }
   try {
-    // Envia o start_param capturado para o backend
     const result = await apiCall('/auth/telegram', 'POST', { initData });
     authToken = result.token;
     userData = result.user;
@@ -386,20 +379,18 @@ async function refreshUser() {
   try {
     const res = await apiCall('/user/me');
     userData = res;
-    if (res.gramPriceUSD && res.gramPriceUSD > 0) gramPriceUSD = res.gramPriceUSD;
   } catch(e) {}
 }
 
-async function fetchPrice() {
+// ✅ Cotação em tempo real via CoinGecko (como Gram Catcher)
+async function updateGramPrice() {
   try {
-    const res = await apiCall('/user/price');
-    if (res.gramPriceUSD && res.gramPriceUSD > 0) gramPriceUSD = res.gramPriceUSD;
+    const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=toncoin&vs_currencies=usd');
+    const data = await res.json();
+    if (data && data.toncoin && data.toncoin.usd > 0) {
+      gramPriceUSD = data.toncoin.usd;
+    }
   } catch(e) {}
-}
-
-function activeNb() {
-  if (!userData || !userData.inventory) return null;
-  return userData.inventory.find(n => n.active) || userData.inventory[0] || null;
 }
 
 function formatGram(amount) {
@@ -466,6 +457,11 @@ function getTitle(kiraXP) {
   return 'Aspirante a Kira';
 }
 
+function activeNb() {
+  if (!userData || !userData.inventory) return null;
+  return userData.inventory.find(n => n.active) || userData.inventory[0] || null;
+}
+
 // ====== TELAS ======
 function updateScreenContent(id) {
   const fn = {
@@ -514,8 +510,8 @@ function renderTutorial() {
 
 // --- DASHBOARD ---
 async function renderDashboard() {
-  await fetchPrice();         // cotação primeiro
-  await refreshUser();        // depois usuário
+  await updateGramPrice();
+  await refreshUser();
   const nb = activeNb();
   if (!nb) { document.getElementById('screen-dashboard').innerHTML = '<p>Erro ao carregar.</p>'; return; }
   const kiraLevel = Math.floor((userData.kiraXP || 0) / 5);
@@ -534,15 +530,15 @@ async function renderDashboard() {
         <span class="gram-usd" style="font-size:0.7em;color:#8a9bb5;">${formatUSD(userData.balance||0)}</span>
       </div>
       <div class="glass-card" style="text-align:center;padding:10px 4px;"><span style="color:#8a9bb5;font-size:clamp(15px,4vw,20px);">${nb.pages}/${nb.maxPages}</span><br><small>📄 Páginas</small></div>
-      <div class="glass-card" style="text-align:center;padding:10px 4px;background:rgba(180,20,20,0.2);"><span style="color:#e07070;font-size:clamp(15px,4vw,20px);">${userData.suspicion}%</span><br><small>🕵️ Suspeita</small></div>
+      <div class="glass-card" style="text-align:center;padding:10px 4px;background:rgba(180,20,20,0.2);"><span style="color:#e07070;font-size:clamp(15px,4vw,20px);">${userData.suspicion || 0}%</span><br><small>🕵️ Suspeita</small></div>
     </div>
     ${prisonMsg}
     <div style="font-size:13px;color:var(--ash);margin:6px 0;background:rgba(255,255,255,0.05);padding:6px;border-radius:4px;">
       🎭 <b style="color:var(--rot-gold-light);">${title}</b> — Level Kira: ${kiraLevel} <small style="color:var(--blood-bright);">(+${(kiraLevel*0.5).toFixed(1)}% chance)</small>
     </div>
     ${nb.isFree ? `<div class="glass-card" style="text-align:center;padding:6px;margin-bottom:6px;"><small>⏳ Limite vitalício: ${(nb.totalEarned||0).toFixed(2)}/2.00 🍎 GRAM</small></div>` : ''}
-    <div style="font-size:14px;color:var(--ash);width:100%;margin-bottom:2px;">👁️ Atenção de L: <b style="color:#e07070;">${userData.suspicion}%</b></div>
-    <div class="suspicion-bar"><div class="suspicion-fill" style="width:${Math.max(0, userData.suspicion)}%"></div></div>
+    <div style="font-size:14px;color:var(--ash);width:100%;margin-bottom:2px;">👁️ Atenção de L: <b style="color:#e07070;">${userData.suspicion || 0}%</b></div>
+    <div class="suspicion-bar"><div class="suspicion-fill" style="width:${Math.max(0, userData.suspicion || 0)}%"></div></div>
     <div class="btn-grid">
       <button class="btn-game btn-main" onclick="openTargets()" ${userData.prisonDays>0?'disabled':''}>✍️ Escrever um Nome</button>
       <button class="btn-game" onclick="sfxPortal();setScreen('gacha')">🌀 Portal</button>
@@ -864,7 +860,7 @@ function renderProfile() {
       <p style="margin:6px 0;"><b>Multiplicador:</b> ${nb?.mult||1}x</p>
       <p style="margin:6px 0;"><b>Duração restante:</b> ${daysLeft>0?daysLeft+' dias':'Expirado'}</p>
       <p style="margin:6px 0;"><b>Saldo:</b> ${formatGram(userData.balance||0)} ${formatUSD(userData.balance||0)}</p>
-      <p style="margin:6px 0;"><b>Suspeita:</b> ${userData.suspicion}%</p>
+      <p style="margin:6px 0;"><b>Suspeita:</b> ${userData.suspicion || 0}%</p>
       <p style="margin:6px 0;"><b>Olhos de Shinigami:</b> ${userData.eyes?userData.eyesLeft+' usos':'Inativos'}</p>
       <p style="margin:6px 0;"><b>Level Kira:</b> ${kiraLevel} (+${(kiraLevel*0.5).toFixed(1)}% chance)</p>
       <p style="margin:6px 0;"><b>Jogadas:</b> ${userData.plays} (✅${userData.wins} ❌${userData.losses})</p>
@@ -874,14 +870,12 @@ function renderProfile() {
     </div>`;
 }
 
-// --- REFERRAL (agora com link correto e garantia de captura do start_param) ---
+// --- REFERRAL ---
 async function renderReferral() {
   if(!userData)return;
   let refData;
   try{refData=await apiCall('/user/referral');}catch(e){refData={};}
-  // O código de referral é o Telegram ID do usuário
   const refCode = userData.telegramId || userData._id;
-  // Link que força o start com o parâmetro ref_
   const refLink = `https://t.me/Deathnotegods_bot?start=ref_${refCode}`;
   document.getElementById('screen-referral').innerHTML = `
     <div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Referral</div></div>
@@ -929,7 +923,6 @@ async function claimDaily() {
 // ====== INIT ======
 window.onload=async()=>{
   initAudio();
-  // Limpar tokens antigos para evitar conflito
   localStorage.removeItem('auth_token');
   localStorage.removeItem('admin_token');
   const savedToken=sessionStorage.getItem('auth_token');
@@ -941,7 +934,7 @@ window.onload=async()=>{
     const ok=await loginWithTelegram();
     if(!ok){document.getElementById('screen-intro').innerHTML='<p style="color:red;text-align:center;margin-top:40px;">Abra pelo Telegram.</p>';return;}
   }
-  await fetchPrice();
+  await updateGramPrice();
   setScreen('intro');
   document.getElementById('modalOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('overlay-active');});
   tg.BackButton.onClick(()=>{
@@ -951,6 +944,7 @@ window.onload=async()=>{
     else{tg.close();}
   });
   tg.BackButton.show();
+  setInterval(updateGramPrice, 60000);
 };
 
 function escapeHtml(str){const div=document.createElement('div');div.textContent=str;return div.innerHTML;}

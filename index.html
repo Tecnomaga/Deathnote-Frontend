@@ -515,7 +515,7 @@ function renderTutorial() {
     <button class="btn-modal" style="width:100%;margin-top:10px;" onclick="setScreen('dashboard')">Entendi</button>`;
 }
 
-// --- DASHBOARD (com lógica de banners) ---
+// --- DASHBOARD (com Despertar do Kira) ---
 async function renderDashboard() {
   await updateGramPrice();
   await refreshUser();
@@ -525,12 +525,15 @@ async function renderDashboard() {
   const title = getTitle(userData.kiraXP);
   const prisonMsg = userData.prisonDays > 0 ? `<div class="glass-card" style="background:rgba(180,0,0,0.3);text-align:center;">🔒 Preso por ${userData.prisonDays} dia(s).</div>` : '';
   
-  // Lógica de banners
   let offerBtn = '';
   if (!userData.hasSurvivalKit) {
-    offerBtn = `<button class="btn-game btn-offer" style="grid-column:1/-1;min-height:70px;margin-bottom:10px;font-size:16px;" onclick="buySurvivalKit()">⚡ Kit de Sobrevivência — 3 🍎 GRAM (≈ R$ ${gramPriceBRL ? (3*gramPriceBRL).toFixed(2) : '--'})</button>`;
+    offerBtn = `<button class="btn-game btn-offer" style="grid-column:1/-1;min-height:70px;margin-bottom:10px;font-size:15px;" onclick="buySurvivalKit()">
+      ⚡ Despertar do Kira<br>
+      <small style="font-size:12px;color:var(--rot-gold-light);">O primeiro passo para se tornar um Deus da Morte</small><br>
+      3 🍎 GRAM ≈ ${formatBRL(3)}
+    </button>`;
   } else if (!userData.hasStarterPack) {
-    offerBtn = `<button class="btn-game btn-offer" style="grid-column:1/-1;min-height:70px;margin-bottom:10px;font-size:16px;" onclick="buyStarterPack()">🔥 Pacote Kira Iniciante — 8 🍎 GRAM (-51%)</button>`;
+    offerBtn = `<button class="btn-game btn-offer" style="grid-column:1/-1;min-height:70px;margin-bottom:10px;font-size:15px;" onclick="buyStarterPack()">🔥 Pacote Kira Iniciante — 8 🍎 GRAM (-51%)</button>`;
   }
 
   document.getElementById('screen-dashboard').innerHTML = `
@@ -732,7 +735,7 @@ async function buyFixedNb(rarity) {
   });
 }
 
-// --- LOJA (conversão no topo, preços sem BRL) ---
+// --- LOJA ---
 const shopItems=[
   {id:'starter_pack',icon:'🎁',name:'Pacote Kira Iniciante',desc:'📓 Caderno de Misa (Incomum) — 10 🍎<br>👁️ Olhos de Shinigami (5 usos) — 5 🍎<br>🎭 Máscara de Kira (-30 suspeita) — 1,5 🍎<br>Total: 16,5 🍎 → <b>8 🍎 (-51%)</b>',price:8.0},
   {id:'disguise',icon:'🎭',name:'Máscara de Kira',desc:'Reduz 30 de suspeita.',price:1.5},
@@ -750,15 +753,15 @@ function renderShop() {
     <div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Loja</div></div>
     <div class="price-info">🍎 1 Maçã = 1 GRAM ≈ ${formatBRL(1)}</div>
 
-    <!-- Card do Kit de Sobrevivência (destaque) -->
     <div class="glass-card" style="border:2px solid var(--rot-gold);">
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <span style="font-size:26px;">⚡</span>
         <span class="rarity-badge rarity-legendary">-29% OFF</span>
       </div>
-      <b style="font-size:18px;">Kit de Sobrevivência do Kira</b>
+      <b style="font-size:18px;">Despertar do Kira</b>
+      <p style="font-size:13px;color:var(--rot-gold-light);margin:4px 0;">O primeiro passo para se tornar um Deus da Morte</p>
       <div style="font-size:14px;color:var(--ash);margin:8px 0;">
-        📓 Caderno Comum (60 dias)<br>
+        📓 Caderno do Despertar (60 dias)<br>
         <small>• 2 páginas/dia nos 30 primeiros</small><br>
         <small>• 1 página/dia nos 30 restantes</small><br>
         🎭 Máscara de Kira (-30 suspeita)<br>
@@ -781,19 +784,18 @@ async function buySurvivalKit() {
   if(userData.hasSurvivalKit) { showModal('❌','Kit já adquirido.'); return; }
   if(userData.balance < 3) { showModal('❌','Saldo insuficiente (3 🍎 GRAM).'); return; }
   if(userData.inventory.length + 1 > userData.slots) { showModal('📦','Sem espaço! Expanda seu inventário na Loja.'); return; }
-  confirmAction('Comprar Kit de Sobrevivência', `
-    ⚡ Kit de Sobrevivência do Kira<br>
-    📓 Caderno Comum (60 dias)<br>
+  confirmAction('Despertar do Kira', `
+    ⚡ O primeiro passo para se tornar um Deus da Morte<br>
+    📓 Caderno do Despertar (60 dias)<br>
     • 2 páginas/dia (primeiros 30)<br>
     • 1 página/dia (últimos 30)<br>
     🎭 Máscara de Kira (-30 suspeita)<br>
     👁️ Olho de Shinigami (1 uso)<br>
-    Valor real: 4,25 🍎 GRAM<br>
     <b>Preço: 3 🍎 GRAM</b>`, async () => {
     try {
       const res = await apiCall('/user/buy-survival-kit', 'POST');
       userData = res.user;
-      showModal('✅', 'Kit de Sobrevivência ativado!');
+      showModal('✅', 'Despertar do Kira ativado!');
       setScreen('dashboard');
     } catch(e) { showModal('❌', e.message); }
   });
@@ -830,7 +832,7 @@ function renderInventory() {
           <b class="text-${n.rarity}">${n.name}</b>
           <span class="rarity-badge rarity-${n.rarity}" style="margin-left:4px;">${n.rarity}</span>
           ${n.isFree?' <small style="color:var(--ash);">(Grátis)</small>':''}
-          ${n.isSurvival?' <small style="color:var(--rot-gold-light);">(Sobrevivência)</small>':''}<br>
+          ${n.isSurvival?' <small style="color:var(--rot-gold-light);">(Despertar)</small>':''}<br>
           <small style="color:var(--ash);font-size:13px;">📄${n.pages}/${n.maxPages} p/ dia | ⏳${n.dur}d | ${n.mult}x</small>
         </div>
         <button class="btn-game" style="padding:6px 10px;" ${n.active?'disabled':''} onclick="activateNb('${n.id}')">${n.active?'Ativo':'Usar'}</button>
@@ -934,7 +936,7 @@ function renderProfile() {
     </div>`;
 }
 
-// --- REFERRAL (com lista de indicados e scroll) ---
+// --- REFERRAL ---
 async function renderReferral() {
   if(!userData)return;
   let refData, referralsList = [];
@@ -968,7 +970,7 @@ async function renderReferral() {
 
 function copyRef(link){navigator.clipboard.writeText(link).then(()=>showModal('✅','Link copiado!')).catch(()=>showModal('❌','Erro.'));}
 
-// --- HISTORY (com abas Execuções e Transações) ---
+// --- HISTORY ---
 async function renderHistory() {
   const el=document.getElementById('screen-history');
   let transactions = [];
@@ -1008,7 +1010,7 @@ function switchHistoryTab(tab) {
   document.getElementById('historyTransacoes').style.display = tab==='transacoes'?'block':'none';
 }
 
-// --- DAILY (com BRL para caderno pago) ---
+// --- DAILY ---
 async function claimDaily() {
   if(!userData)return;
   try{

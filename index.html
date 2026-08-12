@@ -98,7 +98,8 @@
     .paper, .modal-box { position: relative; background: radial-gradient(ellipse at 15% 10%, rgba(196,23,42,0.06), transparent 40%), radial-gradient(ellipse at 85% 90%, rgba(200,255,77,0.03), transparent 45%), #15121a; border: 1px solid rgba(216,207,174,0.18); border-radius: 4px 16px 4px 16px; padding: 28px 24px; max-width: 360px; width: 95%; text-align: center; box-shadow: 0 0 60px rgba(125,15,30,0.3); }
     .writing-input { background: rgba(0,0,0,0.55); border: 2px solid var(--blood-bright); color: #fff; padding: 14px; border-radius: 3px 10px 3px 10px; width: 100%; font-family: 'Yuji Syuku', serif; font-size: 20px; text-align: center; outline: none; margin: 16px 0; }
     .writing-input:focus { border-color: var(--shinigami-eye); box-shadow: 0 0 15px rgba(200,255,77,0.35); }
-    .btn-modal { background: linear-gradient(135deg, var(--blood-bright), var(--blood-deep)); border: 1px solid rgba(216,207,174,0.15); color: #fff; padding: 14px 32px; border-radius: 4px 12px 4px 12px; font-weight: 700; font-family: 'Cinzel', serif; cursor: pointer; box-shadow: 0 4px 15px rgba(125,15,30,0.45); }
+    .btn-modal { background: linear-gradient(135deg, var(--blood-bright), var(--blood-deep)); border: 1px solid rgba(216,207,174,0.15); color: #fff; padding: 14px 32px; border-radius: 4px 12px 4px 12px; font-weight: 700; font-family: 'Cinzel', serif; cursor: pointer; box-shadow: 0 4px 15px rgba(125,15,30,0.45); margin: 6px; }
+    .btn-modal-secondary { background: rgba(0,0,0,0.5); border: 1px solid var(--ash); color: var(--ash); }
     .tutorial-step { background: var(--panel); backdrop-filter: var(--glass); border: 1px solid rgba(216,207,174,0.08); border-radius: 3px 14px 3px 14px; padding: 20px; margin-bottom: 12px; }
     .tutorial-step h3 { font-family: 'Cinzel', serif; margin-bottom: 10px; color: var(--rot-gold-light); font-size: 18px; }
     .tutorial-step p { font-size: 14px; line-height: 1.6; color: var(--ash); }
@@ -178,7 +179,8 @@
     <div class="tutorial-step"><h3>🔥 3. Nível Kira</h3><p>Cada execução bem‑sucedida concede experiência. Acumule pontos para subir de nível (máx. 20). Cada nível concede +0,5% de chance de acerto. Falhas consecutivas reduzem o progresso.</p></div>
     <div class="tutorial-step"><h3>🎁 4. Presente Diário</h3><p>Jogadores gratuitos recebem um "bilhete do Shinigami" que reduz 2% de suspeita. Jogadores com cadernos pagos ganham 0.01 TON por dia, com bônus a cada 7 e 30 dias consecutivos.</p></div>
     <div class="tutorial-step"><h3>🕵️ 5. Suspeita e Prisão</h3><p>Cada execução aumenta a suspeita de L em 2% (comum) ou 5% (outros). Se atingir 100%, você será preso por 1 a 3 dias, ficando impossibilitado de escrever nomes e recarregar páginas.</p></div>
-    <div class="tutorial-step"><h3>🎒 6. Inventário</h3><p>Você possui 5 slots para cadernos. Compre expansões na Loja (5 TON por +5 slots). Gerencie bem seus cadernos, pois eles expiram com o tempo.</p></div>
+    <div class="tutorial-step"><h3>🎒 6. Inventário e Expansão</h3><p>Você possui 5 slots para cadernos. Compre expansões na Loja (5 TON por +5 slots). Gerencie bem seus cadernos, pois eles expiram com o tempo.</p></div>
+    <div class="tutorial-step"><h3>👥 7. Sistema de Referral</h3><p>Convide amigos usando seu link de convite. Você ganha 5% de todas as recargas que seus indicados fizerem!</p></div>
     <button class="btn-modal" style="width:100%;margin-top:10px;" onclick="setScreen('dashboard')">Entendi</button>
   </div>
 
@@ -190,6 +192,7 @@
   <div id="screen-deposit" class="screen"><div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Depósito</div></div><div id="depositContent"></div></div>
   <div id="screen-withdraw" class="screen"><div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Saque</div></div><div id="withdrawContent"></div></div>
   <div id="screen-profile" class="screen"><div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Perfil</div></div><div id="profileContent"></div></div>
+  <div id="screen-referral" class="screen"><div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Referral</div></div><div id="referralContent"></div></div>
   <div id="screen-history" class="screen"><div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Histórico</div></div><div id="historyContent"></div></div>
 </div>
 
@@ -210,7 +213,7 @@ for(let i=0;i<45;i++)particles.push(new Particle());
 function anim(){ctx.clearRect(0,0,w,h);particles.forEach(p=>{p.update();p.draw(ctx);});requestAnimationFrame(anim);}
 anim();
 
-const STORAGE_KEY='dn_pte_final6';
+const STORAGE_KEY='dn_pte_final7';
 const WALLET_ADDRESS='UQCA7IxtVOJ-YQhpOv_y8bVPAG5S7Fb0eFH8Mwre5dt_IHML';
 const MAX_SLOTS=5;
 
@@ -225,7 +228,8 @@ const defaultState=()=>({
   gachaEpicPity:0, kiraXP:0, failStreak:0,
   dailyClaimed:false, dailyStreak:0, lastDaily:0,
   prisonDays:0, lastSuspicionUpdate:0,
-  hasStarterPack:false
+  hasStarterPack:false,
+  referralCode:'', referredBy:'', referralEarnings:0
 });
 
 let S=defaultState();
@@ -285,7 +289,7 @@ const targetsPool=[
 ];
 
 const shopItems=[
-  {id:'starter_pack', icon:'🎁', name:'Pacote Kira Iniciante', desc:'1x Caderno Incomum + Olhos + Máscara (limitado 1x)', price:8.0},
+  {id:'starter_pack', icon:'🎁', name:'Pacote Kira Iniciante', desc:'1x Caderno Incomum + Olhos + Máscara (limitado 1x)', price:8.0, items: ['📓 Caderno de Misa (Incomum)','👁️ Olhos de Shinigami (5 usos)','🎭 Máscara de Kira (-30 suspeita)']},
   {id:'disguise',icon:'🎭',name:'Máscara de Kira',desc:'Reduz 30 de suspeita.',price:1.5},
   {id:'eyes',icon:'👁️',name:'Olhos de Shinigami (5 usos)',desc:'+15% chance por 5 tentativas.',price:5.0},
   {id:'expand',icon:'📦',name:'Expansão de Inventário',desc:'+5 slots para cadernos.',price:5.0}
@@ -341,10 +345,19 @@ function getTitle(kiraXP){
 // ============ TELEGRAM MINI APP INTEGRAÇÃO ============
 const API_BASE = 'https://deathnote-backend-k6nq.onrender.com/api';
 let authToken = '';
+let currentUser = null;
 
 const tg = window.Telegram.WebApp;
 tg.ready();
 tg.expand();
+
+// Extrair referral do link de abertura
+const urlParams = new URLSearchParams(tg.initDataUnsafe?.start_param || '');
+const refCode = urlParams.get('start') || tg.initDataUnsafe?.start_param || '';
+if (refCode && refCode.startsWith('ref_')) {
+  S.referredBy = refCode.replace('ref_', '');
+  saveState();
+}
 
 async function apiCall(endpoint, method = 'GET', body = null) {
   const headers = {
@@ -368,6 +381,12 @@ async function loginWithTelegram() {
   try {
     const result = await apiCall('/auth/telegram', 'POST', { initData });
     authToken = result.token;
+    currentUser = result.user;
+    // Salvar código de referral
+    if (!S.referralCode) {
+      S.referralCode = `${result.user.username || 'user'}${result.user.telegramId}`;
+      saveState();
+    }
     return result.user;
   } catch (error) {
     showModal('❌', 'Falha na autenticação: ' + error.message);
@@ -398,29 +417,55 @@ async function syncWithBackend() {
       prisonDays: S.prisonDays,
       lastSuspicionUpdate: S.lastSuspicionUpdate,
       hasStarterPack: S.hasStarterPack,
-      lastPageRefill: S.lastPageRefill || Date.now()
+      lastPageRefill: S.lastPageRefill || Date.now(),
+      referralCode: S.referralCode,
+      referredBy: S.referredBy,
+      referralEarnings: S.referralEarnings
     });
   } catch (error) {
     console.error('Sync falhou:', error);
   }
 }
 
+// Função de confirmação genérica
+function confirmAction(title, message, onConfirm) {
+  document.getElementById('modalBox').innerHTML = `
+    <div style="font-size:40px;">⚠️</div>
+    <h3 style="color:var(--rot-gold-light);margin:8px 0;">${title}</h3>
+    <p style="line-height:1.5;font-size:15px;margin:12px 0;">${message}</p>
+    <div style="display:flex;gap:8px;justify-content:center;margin-top:16px;">
+      <button class="btn-modal btn-modal-secondary" onclick="document.getElementById('modalOverlay').classList.remove('overlay-active')">Cancelar</button>
+      <button class="btn-modal" id="confirmBtn">Confirmar</button>
+    </div>`;
+  document.getElementById('modalOverlay').classList.add('overlay-active');
+  document.getElementById('confirmBtn').addEventListener('click', () => {
+    document.getElementById('modalOverlay').classList.remove('overlay-active');
+    onConfirm();
+  });
+}
+
 function submitDeposit() {
   const amount = document.getElementById('depositAmount')?.value;
   const txid = document.getElementById('depositTxid')?.value.trim();
   if (!amount || !txid) { showModal('❌', 'Preencha valor e TXID.'); return; }
-  apiCall('/deposit', 'POST', { amount: parseFloat(amount), txid })
-    .then(() => showModal('📥', `Comprovante enviado!\nTXID: ${txid}\nAguardando aprovação.`))
-    .catch(err => showModal('❌', err.message));
+  confirmAction('Confirmar Depósito', `Enviar comprovante de ${amount} TON?\nTXID: ${txid}`, () => {
+    apiCall('/deposit', 'POST', { amount: parseFloat(amount), txid })
+      .then(() => showModal('📥', `Comprovante enviado!\nTXID: ${txid}\nAguardando aprovação.`))
+      .catch(err => showModal('❌', err.message));
+  });
 }
 
 function requestWithdraw() {
   const addr = document.getElementById('withdrawAddr')?.value.trim();
   const amt = parseFloat(document.getElementById('withdrawAmount')?.value);
   if (!addr || isNaN(amt) || amt < 1) { showModal('❌', 'Dados inválidos.'); return; }
-  apiCall('/withdraw', 'POST', { address: addr, amount: amt })
-    .then(() => showModal('📤', `Saque de ${amt} TON solicitado!`))
-    .catch(err => showModal('❌', err.message));
+  const fee = amt * 0.05;
+  const total = amt + fee;
+  confirmAction('Confirmar Saque', `Sacar ${amt} TON para:\n${addr}\nTaxa: ${fee} TON\nTotal: ${total} TON`, () => {
+    apiCall('/withdraw', 'POST', { address: addr, amount: amt })
+      .then(() => showModal('📤', `Saque de ${amt} TON solicitado!`))
+      .catch(err => showModal('❌', err.message));
+  });
 }
 
 function setScreen(id){
@@ -431,7 +476,7 @@ function setScreen(id){
 function updateScreenContent(id){
   const fn={
     dashboard:renderDashboard,targets:renderTargets,gacha:renderGacha,shop:renderShop,
-    inventory:renderInventory,deposit:renderDeposit,withdraw:renderWithdraw,profile:renderProfile,history:renderHistory
+    inventory:renderInventory,deposit:renderDeposit,withdraw:renderWithdraw,profile:renderProfile,referral:renderReferral,history:renderHistory
   };
   if(fn[id])fn[id]();
 }
@@ -440,15 +485,20 @@ function buyStarterPack(){
   if(S.hasStarterPack){showModal('❌','Pacote já adquirido.');return;}
   if(S.gram<8){showModal('❌','Saldo insuficiente (8 TON).');return}
   if(S.inventory.length+1>S.slots){showModal('❌','Inventário cheio! Libere espaço.');return;}
-  S.gram-=8;
-  S.hasStarterPack=true;
-  S.inventory.push({id:'nb_starter_'+Date.now(),name:'Caderno de Misa',rarity:'uncommon',pages:2,maxPages:2,mult:1.2,dur:60,active:false,isFree:false,createdAt:Date.now(),lastPageRefill:Date.now()});
-  S.eyes=true;S.eyesLeft=5;
-  S.suspicion=Math.max(0,S.suspicion-30);
-  showNotification('🎁 Pacote Kira Iniciante adquirido!');
-  showModal('✅','Pacote Kira Iniciante comprado com sucesso!');
-  saveState();
-  setScreen('dashboard');
+  confirmAction('Pacote Kira Iniciante', 
+    'Itens incluídos:\n📓 Caderno de Misa (Incomum)\n👁️ Olhos de Shinigami (5 usos)\n🎭 Máscara de Kira (-30 suspeita)\n\nPreço: 8 TON',
+    () => {
+      S.gram-=8;
+      S.hasStarterPack=true;
+      S.inventory.push({id:'nb_starter_'+Date.now(),name:'Caderno de Misa',rarity:'uncommon',pages:2,maxPages:2,mult:1.2,dur:60,active:false,isFree:false,createdAt:Date.now(),lastPageRefill:Date.now()});
+      S.eyes=true;S.eyesLeft=5;
+      S.suspicion=Math.max(0,S.suspicion-30);
+      showNotification('🎁 Pacote Kira Iniciante adquirido!');
+      showModal('✅','Pacote Kira Iniciante comprado com sucesso!');
+      saveState();
+      setScreen('dashboard');
+    }
+  );
 }
 
 function renderDashboard(){
@@ -483,9 +533,28 @@ function renderDashboard(){
       <button class="btn-game" onclick="setScreen('deposit')">📥 Depósito</button>
       <button class="btn-game" onclick="setScreen('withdraw')">📤 Saque</button>
       <button class="btn-game" onclick="setScreen('profile')">🎭 Perfil</button>
+      <button class="btn-game" onclick="setScreen('referral')">👥 Referral</button>
       <button class="btn-game" onclick="setScreen('history')">📜 Histórico</button>
       <button class="btn-game" onclick="claimDaily()">🎁 Diário</button>
     </div>`;
+}
+
+function renderReferral(){
+  const refLink = `https://t.me/${tg.initDataUnsafe?.bot_username || 'deathnote_p2e_bot'}?start=ref_${S.referralCode}`;
+  document.getElementById('referralContent').innerHTML=`
+    <div class="glass-card" style="text-align:center;padding:20px;">
+      <p style="font-size:18px;color:var(--gold-light);">👥 Sistema de Referral</p>
+      <p style="font-size:14px;color:var(--ash);margin:12px 0;">Convide amigos e ganhe <b style="color:#c9a03a;">5%</b> de todas as recargas que eles fizerem!</p>
+      <p style="font-size:13px;color:var(--ash);">Seu código: <b style="color:var(--blood-bright);">${S.referralCode}</b></p>
+      <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:14px;margin:12px 0;word-break:break-all;font-family:monospace;font-size:14px;">${refLink}</div>
+      <button class="copy-btn" onclick="copyReferralLink()">📋 Copiar Link</button>
+      <p style="font-size:14px;color:var(--ash);margin-top:16px;">Ganhos com referral: <b style="color:#c9a03a;">${S.referralEarnings.toFixed(2)} TON</b></p>
+    </div>`;
+}
+
+function copyReferralLink(){
+  const refLink = `https://t.me/${tg.initDataUnsafe?.bot_username || 'deathnote_p2e_bot'}?start=ref_${S.referralCode}`;
+  navigator.clipboard.writeText(refLink).then(()=>showModal('✅','Link copiado!')).catch(()=>showModal('❌','Erro ao copiar.'));
 }
 
 function renderTargets(){
@@ -688,6 +757,7 @@ function renderProfile(){
       <p style="margin:8px 0;"><b>Jogadas:</b> ${S.plays} (✅${S.wins} ❌${S.losses})</p>
       <p style="margin:8px 0;"><b>Prisão:</b> ${S.prisonDays>0?S.prisonDays+' dia(s) restantes':'Livre'}</p>
       <p style="margin:8px 0;"><b>Inventário:</b> ${S.inventory.length}/${S.slots} slots</p>
+      <p style="margin:8px 0;"><b>Ganhos Referral:</b> ${S.referralEarnings.toFixed(2)} TON</p>
     </div>`;
 }
 
@@ -714,40 +784,44 @@ function buyItem(id){
   const item=shopItems.find(i=>i.id===id);
   if(!item){return;}
   if(S.gram<item.price){showModal('❌','Saldo insuficiente.');return}
-  S.gram-=item.price;
-  if(id==='disguise')S.suspicion=Math.max(0,S.suspicion-30);
-  else if(id==='eyes'){S.eyes=true;S.eyesLeft=5;}
-  else if(id==='expand'){S.slots+=5;showNotification('📦 Inventário expandido em +5 slots!');}
-  showModal('✅',`${item.name} adquirido!`);saveState();setScreen('shop');
+  confirmAction('Confirmar Compra', `${item.name}\nPreço: ${item.price} TON`, () => {
+    S.gram-=item.price;
+    if(id==='disguise')S.suspicion=Math.max(0,S.suspicion-30);
+    else if(id==='eyes'){S.eyes=true;S.eyesLeft=5;}
+    else if(id==='expand'){S.slots+=5;showNotification('📦 Inventário expandido em +5 slots!');}
+    showModal('✅',`${item.name} adquirido!`);saveState();setScreen('shop');
+  });
 }
 
 function pullGacha(q){
   if(S.inventory.length+q>S.slots){showModal('❌','Inventário cheio! Compre expansão ou libere espaço.');return;}
   const cost=q*4;
   if(S.gram<cost){showModal('❌','Saldo insuficiente.');return}
-  S.gram-=cost;
-  const probs=[0.951,0.032,0.012,0.004,0.001];
-  const rarities=['common','uncommon','rare','epic','legendary'];
-  const results=[];
-  for(let i=0;i<q;i++){
-    let r='common';
-    if(S.gachaEpicPity>=49){r='epic';S.gachaEpicPity=0;}
-    else{let roll=Math.random(),cum=0;for(let j=0;j<probs.length;j++){cum+=probs[j];if(roll<cum){r=rarities[j];break}}}
-    if(r==='epic'||r==='legendary')S.gachaEpicPity=0;else S.gachaEpicPity++;
-    results.push(r);
-  }
-  const cfg={common:{pages:1,maxPages:1,mult:1.0,dur:90},uncommon:{pages:2,maxPages:2,mult:1.2,dur:60},rare:{pages:2,maxPages:2,mult:1.5,dur:75},epic:{pages:2,maxPages:2,mult:1.8,dur:90},legendary:{pages:3,maxPages:3,mult:2.2,dur:120}};
-  const names={common:['Sidoh','Gukku','Armonia','Zellogi'],uncommon:['Higuchi','Misa','Mikami','Takada'],rare:['Rem','Jealous','Daril','Kinddara'],epic:['Ryuk Negociado','Rei Shinigami','Nu','Midora'],legendary:['Ryuk Original','Primordial','Deus Shinigami']};
-  results.forEach(r=>{
-    const c=cfg[r];
-    const name=names[r][Math.floor(Math.random()*names[r].length)];
-    S.inventory.push({id:'nb_'+Date.now()+Math.random(),name:`Caderno de ${name}`,rarity:r,pages:c.pages,maxPages:c.maxPages,mult:c.mult,dur:c.dur,active:false,isFree:false,createdAt:Date.now(),lastPageRefill:Date.now()});
+  confirmAction('Confirmar Invocação', `${q}x Invocação\nCusto: ${cost} TON`, () => {
+    S.gram-=cost;
+    const probs=[0.951,0.032,0.012,0.004,0.001];
+    const rarities=['common','uncommon','rare','epic','legendary'];
+    const results=[];
+    for(let i=0;i<q;i++){
+      let r='common';
+      if(S.gachaEpicPity>=49){r='epic';S.gachaEpicPity=0;}
+      else{let roll=Math.random(),cum=0;for(let j=0;j<probs.length;j++){cum+=probs[j];if(roll<cum){r=rarities[j];break}}}
+      if(r==='epic'||r==='legendary')S.gachaEpicPity=0;else S.gachaEpicPity++;
+      results.push(r);
+    }
+    const cfg={common:{pages:1,maxPages:1,mult:1.0,dur:90},uncommon:{pages:2,maxPages:2,mult:1.2,dur:60},rare:{pages:2,maxPages:2,mult:1.5,dur:75},epic:{pages:2,maxPages:2,mult:1.8,dur:90},legendary:{pages:3,maxPages:3,mult:2.2,dur:120}};
+    const names={common:['Sidoh','Gukku','Armonia','Zellogi'],uncommon:['Higuchi','Misa','Mikami','Takada'],rare:['Rem','Jealous','Daril','Kinddara'],epic:['Ryuk Negociado','Rei Shinigami','Nu','Midora'],legendary:['Ryuk Original','Primordial','Deus Shinigami']};
+    results.forEach(r=>{
+      const c=cfg[r];
+      const name=names[r][Math.floor(Math.random()*names[r].length)];
+      S.inventory.push({id:'nb_'+Date.now()+Math.random(),name:`Caderno de ${name}`,rarity:r,pages:c.pages,maxPages:c.maxPages,mult:c.mult,dur:c.dur,active:false,isFree:false,createdAt:Date.now(),lastPageRefill:Date.now()});
+    });
+    const sum=results.reduce((a,r)=>{a[r]=(a[r]||0)+1;return a},{});
+    if(sum['epic']||sum['legendary']) showNotification(`📓 Um caderno raro foi encontrado: ${Object.entries(sum).map(([r,c])=>`${c}x ${r}`).join(', ')}`);
+    showModal('🌀',`Obtido: ${Object.entries(sum).map(([r,c])=>`${c}x ${r}`).join(', ')}`);
+    document.getElementById('gachaResult').innerHTML=`<div class="glass-card" style="text-align:center;color:var(--gold-light);">Último pull: ${Object.entries(sum).map(([r,c])=>`${c}x ${r}`).join(', ')}</div>`;
+    saveState();setScreen('gacha');
   });
-  const sum=results.reduce((a,r)=>{a[r]=(a[r]||0)+1;return a},{});
-  if(sum['epic']||sum['legendary']) showNotification(`📓 Um caderno raro foi encontrado: ${Object.entries(sum).map(([r,c])=>`${c}x ${r}`).join(', ')}`);
-  showModal('🌀',`Obtido: ${Object.entries(sum).map(([r,c])=>`${c}x ${r}`).join(', ')}`);
-  document.getElementById('gachaResult').innerHTML=`<div class="glass-card" style="text-align:center;color:var(--gold-light);">Último pull: ${Object.entries(sum).map(([r,c])=>`${c}x ${r}`).join(', ')}</div>`;
-  saveState();setScreen('gacha');
 }
 
 function buyFixedNb(rarity){
@@ -756,12 +830,14 @@ function buyFixedNb(rarity){
   const cfg={common:{pages:1,maxPages:1,mult:1.0,dur:90},uncommon:{pages:2,maxPages:2,mult:1.2,dur:60},rare:{pages:2,maxPages:2,mult:1.5,dur:75},epic:{pages:2,maxPages:2,mult:1.8,dur:90},legendary:{pages:3,maxPages:3,mult:2.2,dur:120}};
   const names={common:['Sidoh','Gukku'],uncommon:['Higuchi','Misa'],rare:['Rem','Jealous'],epic:['Ryuk Negociado','Rei Shinigami'],legendary:['Ryuk Original','Primordial']};
   if(S.gram<prices[rarity]){showModal('❌','Saldo insuficiente.');return}
-  S.gram-=prices[rarity];
-  const c=cfg[rarity];
-  const name=names[rarity][Math.floor(Math.random()*names[rarity].length)];
-  S.inventory.push({id:'nb_'+Date.now(),name:`Caderno de ${name}`,rarity,pages:c.pages,maxPages:c.maxPages,mult:c.mult,dur:c.dur,active:false,isFree:false,createdAt:Date.now(),lastPageRefill:Date.now()});
-  if(rarity==='epic'||rarity==='legendary') showNotification(`📓 Um caderno ${rarity} foi adquirido: ${name}`);
-  showModal('📓','Caderno adquirido!');saveState();setScreen('gacha');
+  confirmAction('Confirmar Compra', `Caderno ${rarity}\nPreço: ${prices[rarity]} TON`, () => {
+    S.gram-=prices[rarity];
+    const c=cfg[rarity];
+    const name=names[rarity][Math.floor(Math.random()*names[rarity].length)];
+    S.inventory.push({id:'nb_'+Date.now(),name:`Caderno de ${name}`,rarity,pages:c.pages,maxPages:c.maxPages,mult:c.mult,dur:c.dur,active:false,isFree:false,createdAt:Date.now(),lastPageRefill:Date.now()});
+    if(rarity==='epic'||rarity==='legendary') showNotification(`📓 Um caderno ${rarity} foi adquirido: ${name}`);
+    showModal('📓','Caderno adquirido!');saveState();setScreen('gacha');
+  });
 }
 
 function activateNb(id){
@@ -799,19 +875,25 @@ function showModal(icon,msg){
 window.onload = async () => {
   const user = await loginWithTelegram();
   if (user) {
-    // carregar estado do backend se necessário
     setScreen('intro');
   } else {
-    // se falhar autenticação, mostrar tela de erro? mas já mostrou modal
     setScreen('intro');
   }
   document.getElementById('modalOverlay').addEventListener('click', e => {
     if (e.target === e.currentTarget) e.currentTarget.classList.remove('overlay-active');
   });
   setInterval(syncWithBackend, 30000);
+
+  // Botão voltar do Telegram
   tg.BackButton.onClick(() => {
-    if (S.screen !== 'intro' && S.screen !== 'dashboard') setScreen('dashboard');
-    else tg.close();
+    const currentScreen = document.querySelector('.screen.active');
+    if (currentScreen && currentScreen.id === 'screen-dashboard') {
+      tg.close();
+    } else if (currentScreen && currentScreen.id !== 'screen-intro') {
+      setScreen('dashboard');
+    } else {
+      tg.close();
+    }
   });
   tg.BackButton.show();
 };

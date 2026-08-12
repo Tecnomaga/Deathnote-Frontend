@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Cinzel:wght@400;600;700;900&family=Zen+Kaku+Gothic+New:wght@300;400;500;700;900&family=Yuji+Syuku&family=Special+Elite&display=swap" rel="stylesheet">
   <style>
+    /* (mesmo CSS da versão anterior, sem alterações) */
     :root {
       --abyss: #050507;
       --panel: rgba(15, 13, 18, 0.72);
@@ -219,7 +220,7 @@ let authToken = '';
 let userData = null;
 let targets = [];
 let targetIndex = null;
-let gramPriceBRL = null; // preço em BRL, será atualizado
+let gramPriceBRL = null;
 
 // ====== ÁUDIO ======
 let audioCtx = null;
@@ -668,24 +669,24 @@ async function executePlay(t) {
   setScreen('dashboard');
 }
 
-// --- GACHA ---
+// --- GACHA (sem BRL) ---
 function renderGacha() {
   document.getElementById('screen-gacha').innerHTML = `
     <div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Portal</div></div>
     <div class="portal-container"><div class="portal-outer"><div class="portal-inner">🌀</div></div></div>
     <div style="text-align:center;font-family:'Yuji Syuku';color:var(--rot-gold-light);margin-bottom:8px;">Invocar Cadernos (4 🍎 GRAM)</div>
     <div style="display:flex;gap:8px;width:100%;margin-bottom:8px;">
-      <div class="glass-card" style="flex:1;text-align:center;cursor:pointer;" onclick="pullGacha(1)"><b>1x</b><br>4 🍎 GRAM<br><small style="color:var(--ash);">${formatBRL(4)}</small></div>
-      <div class="glass-card" style="flex:1;text-align:center;cursor:pointer;" onclick="pullGacha(10)"><b>10x</b><br>40 🍎 GRAM<br><small style="color:var(--ash);">${formatBRL(40)}</small></div>
+      <div class="glass-card" style="flex:1;text-align:center;cursor:pointer;" onclick="pullGacha(1)"><b>1x</b><br>4 🍎 GRAM</div>
+      <div class="glass-card" style="flex:1;text-align:center;cursor:pointer;" onclick="pullGacha(10)"><b>10x</b><br>40 🍎 GRAM</div>
     </div>
     <div class="glass-card" style="text-align:center;padding:12px;">
       <b style="color:var(--rot-gold-light);">🛍️ Comprar Caderno Específico</b>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:6px;">
-        <div class="glass-card" style="padding:6px;text-align:center;cursor:pointer;" onclick="buyFixedNb('common')"><span class="rarity-badge rarity-common">Comum</span><br>3 🍎 GRAM<br><small style="color:var(--ash);">${formatBRL(3)}</small></div>
-        <div class="glass-card" style="padding:6px;text-align:center;cursor:pointer;" onclick="buyFixedNb('uncommon')"><span class="rarity-badge rarity-uncommon">Incomum</span><br>10 🍎 GRAM<br><small style="color:var(--ash);">${formatBRL(10)}</small></div>
-        <div class="glass-card" style="padding:6px;text-align:center;cursor:pointer;" onclick="buyFixedNb('rare')"><span class="rarity-badge rarity-rare">Raro</span><br>25 🍎 GRAM<br><small style="color:var(--ash);">${formatBRL(25)}</small></div>
-        <div class="glass-card" style="padding:6px;text-align:center;cursor:pointer;" onclick="buyFixedNb('epic')"><span class="rarity-badge rarity-epic">Épico</span><br>50 🍎 GRAM<br><small style="color:var(--ash);">${formatBRL(50)}</small></div>
-        <div class="glass-card" style="padding:6px;text-align:center;cursor:pointer;" onclick="buyFixedNb('legendary')"><span class="rarity-badge rarity-legendary">Lendário</span><br>100 🍎 GRAM<br><small style="color:var(--ash);">${formatBRL(100)}</small></div>
+        <div class="glass-card" style="padding:6px;text-align:center;cursor:pointer;" onclick="buyFixedNb('common')"><span class="rarity-badge rarity-common">Comum</span><br>3 🍎 GRAM</div>
+        <div class="glass-card" style="padding:6px;text-align:center;cursor:pointer;" onclick="buyFixedNb('uncommon')"><span class="rarity-badge rarity-uncommon">Incomum</span><br>10 🍎 GRAM</div>
+        <div class="glass-card" style="padding:6px;text-align:center;cursor:pointer;" onclick="buyFixedNb('rare')"><span class="rarity-badge rarity-rare">Raro</span><br>25 🍎 GRAM</div>
+        <div class="glass-card" style="padding:6px;text-align:center;cursor:pointer;" onclick="buyFixedNb('epic')"><span class="rarity-badge rarity-epic">Épico</span><br>50 🍎 GRAM</div>
+        <div class="glass-card" style="padding:6px;text-align:center;cursor:pointer;" onclick="buyFixedNb('legendary')"><span class="rarity-badge rarity-legendary">Lendário</span><br>100 🍎 GRAM</div>
       </div>
     </div>
     <div id="gachaResult" style="margin-top:8px;width:100%;"></div>`;
@@ -730,7 +731,7 @@ async function buyFixedNb(rarity) {
   });
 }
 
-// --- LOJA ---
+// --- LOJA (conversão no topo, preços sem BRL) ---
 const shopItems=[
   {id:'starter_pack',icon:'🎁',name:'Pacote Kira Iniciante',desc:'📓 Caderno de Misa (Incomum) — 10 🍎<br>👁️ Olhos de Shinigami (5 usos) — 5 🍎<br>🎭 Máscara de Kira (-30 suspeita) — 1,5 🍎<br>Total: 16,5 🍎 → <b>8 🍎 (-51%)</b>',price:8.0},
   {id:'disguise',icon:'🎭',name:'Máscara de Kira',desc:'Reduz 30 de suspeita.',price:1.5},
@@ -747,7 +748,7 @@ function renderShop() {
     ${shopItems.map(i=>`
       <div class="glass-card" style="display:flex;align-items:center;gap:10px;">
         <span style="font-size:26px;">${i.icon}</span>
-        <div style="flex:1;"><b>${i.name}</b><br><small style="color:var(--ash);font-size:13px;">${i.desc}</small><br><span style="color:#c9a03a;font-size:15px;">${i.price} 🍎 GRAM</span><br><small style="color:var(--ash);">${formatBRL(i.price)}</small></div>
+        <div style="flex:1;"><b>${i.name}</b><br><small style="color:var(--ash);font-size:13px;">${i.desc}</small><br><span style="color:#c9a03a;font-size:15px;">${i.price} 🍎 GRAM</span></div>
         <button class="btn-game" style="padding:8px 14px;" onclick="buyItem('${i.id}')" ${i.id==='starter_pack'?starterDisabled:''}>${i.id==='starter_pack'?starterText:'Comprar'}</button>
       </div>`).join('')}`;
 }
@@ -828,7 +829,7 @@ async function submitDeposit(){
   });
 }
 
-// --- WITHDRAW ---
+// --- WITHDRAW (com BRL) ---
 function renderWithdraw() {
   document.getElementById('screen-withdraw').innerHTML = `
     <div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Saque</div></div>
@@ -860,7 +861,7 @@ async function requestWithdraw(){
   });
 }
 
-// --- PROFILE ---
+// --- PROFILE (com BRL) ---
 function renderProfile() {
   if(!userData)return;
   const nb=activeNb();
@@ -960,17 +961,18 @@ function switchHistoryTab(tab) {
   document.getElementById('historyTransacoes').style.display = tab==='transacoes'?'block':'none';
 }
 
-// --- DAILY ---
+// --- DAILY (com BRL para caderno pago) ---
 async function claimDaily() {
   if(!userData)return;
   try{
+    await updateGramPrice();
     const res=await apiCall('/user/daily','POST');
     userData=res.user;
     const nb=activeNb();
     if(nb?.isFree){
       showModal('🎁','"Um bilhete aparece ao lado do seu caderno: L está distraído hoje..."\n-2% de suspeita.');
     }else{
-      showModal('🎁','+0.01 🍎 GRAM diário!');
+      showModal('🎁',`+0.01 🍎 GRAM diário!\n${formatBRL(0.01)}`);
     }
     sfxDailySound();
     setScreen('dashboard');

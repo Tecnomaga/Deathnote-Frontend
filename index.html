@@ -149,8 +149,8 @@
       letter-spacing: 2px;
     }
 
-    .suspicion-bar { width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; margin: 6px 0 12px; overflow: hidden; }
-    .suspicion-fill { height: 100%; background: linear-gradient(90deg, #c4172a, #e07070); border-radius: 3px; transition: width 0.5s; }
+    .suspicion-bar { width: 100%; height: 8px; background: rgba(255,255,255,0.25); border-radius: 4px; margin: 6px 0 12px; overflow: hidden; }
+    .suspicion-fill { height: 100%; background: linear-gradient(90deg, #c4172a, #e07070); border-radius: 4px; transition: width 0.5s; }
 
     .price-info { text-align: center; font-size: 13px; color: var(--ash); margin-bottom: 12px; background: rgba(255,255,255,0.03); padding: 8px; border-radius: 4px; }
 
@@ -212,48 +212,50 @@ let authToken = '';
 let userData = null;
 let targets = [];
 let targetIndex = null;
-let gramPriceUSD = 0.05;
+let gramPriceUSD = null;
 
-// ====== ÁUDIO SUTIL (vento, coruja, máquina de escrever) ======
+// ====== ÁUDIO IMERSIVO (vento grave, máquina de escrever, batida cardíaca) ======
 let audioCtx = null;
 let audioEnabled = true;
+let ambientDrone = null;
+let ambientGain = null;
 
 function initAudio() {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 }
 
-function playWind() {
-  if (!audioEnabled || !audioCtx) return;
-  const bufferSize = audioCtx.sampleRate * 1.5;
-  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
-  const data = buffer.getChannelData(0);
-  for (let i = 0; i < bufferSize; i++) {
-    data[i] = (Math.random() * 2 - 1) * 0.03;
-  }
-  const source = audioCtx.createBufferSource();
-  source.buffer = buffer;
-  const filter = audioCtx.createBiquadFilter();
-  filter.type = 'lowpass';
-  filter.frequency.setValueAtTime(400, audioCtx.currentTime);
-  source.connect(filter);
-  filter.connect(audioCtx.destination);
-  source.start();
-  source.stop(audioCtx.currentTime + 1.5);
+function startAmbient() {
+  if (!audioEnabled || !audioCtx || ambientDrone) return;
+  ambientDrone = audioCtx.createOscillator();
+  ambientGain = audioCtx.createGain();
+  ambientDrone.type = 'sawtooth';
+  ambientDrone.frequency.setValueAtTime(55, audioCtx.currentTime);
+  const lfo = audioCtx.createOscillator();
+  const lfoGain = audioCtx.createGain();
+  lfo.frequency.setValueAtTime(0.2, audioCtx.currentTime);
+  lfoGain.gain.setValueAtTime(15, audioCtx.currentTime);
+  lfo.connect(lfoGain);
+  lfoGain.connect(ambientDrone.detune);
+  lfo.start();
+
+  ambientGain.gain.setValueAtTime(0.02, audioCtx.currentTime);
+  ambientDrone.connect(ambientGain);
+  ambientGain.connect(audioCtx.destination);
+  ambientDrone.start();
 }
 
-function playOwl() {
-  if (!audioEnabled || !audioCtx) return;
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.type = 'sine';
-  osc.frequency.setValueAtTime(500, audioCtx.currentTime);
-  osc.frequency.linearRampToValueAtTime(350, audioCtx.currentTime + 0.3);
-  gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  osc.start();
-  osc.stop(audioCtx.currentTime + 0.5);
+function stopAmbient() {
+  if (ambientDrone) {
+    ambientGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
+    setTimeout(() => {
+      if (ambientDrone) {
+        ambientDrone.stop();
+        ambientDrone.disconnect();
+        ambientDrone = null;
+        ambientGain = null;
+      }
+    }, 600);
+  }
 }
 
 function sfxTypewriter() {
@@ -270,17 +272,102 @@ function sfxTypewriter() {
   osc.stop(audioCtx.currentTime + 0.03);
 }
 
-function sfxOpenBook() { playWind(); setTimeout(() => playOwl(), 600); }
-function sfxWrite() { sfxTypewriter(); }
-function sfxSuccess() { playOwl(); setTimeout(() => playOwl(), 300); }
-function sfxFail() { playWind(); }
-function sfxGacha() { for(let i=0;i<4;i++) setTimeout(() => playOwl(), i*150); }
-function sfxDaily() { playOwl(); }
+function sfxHeartbeat() {
+  if (!audioEnabled || !audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(80, audioCtx.currentTime);
+  gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + 0.1);
+  // segunda batida mais fraca
+  setTimeout(() => {
+    if (!audioEnabled || !audioCtx) return;
+    const osc2 = audioCtx.createOscillator();
+    const gain2 = audioCtx.createGain();
+    osc2.type = 'sine';
+    osc2.frequency.setValueAtTime(70, audioCtx.currentTime);
+    gain2.gain.setValueAtTime(0.08, audioCtx.currentTime);
+    gain2.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.08);
+    osc2.connect(gain2);
+    gain2.connect(audioCtx.destination);
+    osc2.start();
+    osc2.stop(audioCtx.currentTime + 0.08);
+  }, 120);
+}
+
+function sfxWind() {
+  if (!audioEnabled || !audioCtx) return;
+  const bufferSize = audioCtx.sampleRate * 2;
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    data[i] = (Math.random() * 2 - 1) * 0.03;
+  }
+  const source = audioCtx.createBufferSource();
+  source.buffer = buffer;
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'lowpass';
+  filter.frequency.setValueAtTime(300, audioCtx.currentTime);
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(0.03, audioCtx.currentTime);
+  source.connect(filter);
+  filter.connect(gain);
+  gain.connect(audioCtx.destination);
+  source.start();
+  source.stop(audioCtx.currentTime + 2);
+}
+
+function sfxPortal() {
+  if (!audioEnabled || !audioCtx) return;
+  for (let i = 0; i < 5; i++) {
+    setTimeout(() => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(300 + i * 80, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.2);
+    }, i * 70);
+  }
+}
+
+function sfxDailySound() {
+  if (!audioEnabled || !audioCtx) return;
+  const notes = [523, 659, 784];
+  notes.forEach((freq, i) => {
+    setTimeout(() => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.06, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.2);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.2);
+    }, i * 150);
+  });
+}
 
 function toggleAudio() {
   initAudio();
   audioEnabled = !audioEnabled;
   document.getElementById('audioToggle').textContent = audioEnabled ? '🔊' : '🔇';
+  if (audioEnabled) {
+    startAmbient();
+  } else {
+    stopAmbient();
+  }
 }
 
 // ====== PARTÍCULAS ======
@@ -319,7 +406,7 @@ async function loginWithTelegram() {
     const result = await apiCall('/auth/telegram', 'POST', { initData });
     authToken = result.token;
     userData = result.user;
-    localStorage.setItem('auth_token', authToken);
+    sessionStorage.setItem('auth_token', authToken);
     return true;
   } catch (error) { showModal('❌', 'Falha na autenticação: ' + error.message); return false; }
 }
@@ -350,6 +437,7 @@ function formatGram(amount) {
 }
 
 function formatUSD(amount) {
+  if (!gramPriceUSD) return '';
   const usd = Number(amount) * gramPriceUSD;
   return `≈ $${usd.toFixed(2)} USD`;
 }
@@ -360,6 +448,12 @@ function setScreen(id) {
   const screen = document.getElementById('screen-' + id);
   if (screen) screen.classList.add('active');
   updateScreenContent(id);
+  // Iniciar drone ambiente em telas principais, parar na escrita (gerenciado separadamente)
+  if (['dashboard', 'targets', 'gacha', 'shop', 'inventory', 'deposit', 'withdraw', 'profile', 'referral', 'history'].includes(id)) {
+    startAmbient();
+  } else {
+    stopAmbient();
+  }
 }
 
 function showNotification(msg) {
@@ -433,7 +527,7 @@ function renderIntro() {
       <div style="font-family:'Special Elite',monospace;font-size:11px;letter-spacing:5px;text-transform:uppercase;color:#8a8a8a;margin-top:8px;">O caderno escolheu você</div>
       <div style="width:140px;height:1px;background:linear-gradient(90deg,transparent,var(--blood-bright),transparent);margin:18px 0;position:relative;"><span style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:11px;color:var(--blood-bright);background:var(--abyss);padding:0 8px;">死</span></div>
       <div style="font-family:'Yuji Syuku',serif;font-size:14px;color:var(--ash);max-width:280px;line-height:1.75;">"O nome escrito neste caderno terá seu coração parado em 40 segundos."</div>
-      <button onclick="sfxOpenBook();setScreen('tutorial')" style="margin-top:22px;padding:14px 42px;background:transparent;border:1px solid var(--blood-bright);border-radius:2px 10px 2px 10px;color:var(--bone);font-family:'Special Elite',monospace;font-size:14px;letter-spacing:3px;text-transform:uppercase;cursor:pointer;">Abrir o Caderno</button>
+      <button onclick="startAmbient(); setScreen('tutorial')" style="margin-top:22px;padding:14px 42px;background:transparent;border:1px solid var(--blood-bright);border-radius:2px 10px 2px 10px;color:var(--bone);font-family:'Special Elite',monospace;font-size:14px;letter-spacing:3px;text-transform:uppercase;cursor:pointer;">Abrir o Caderno</button>
     </div>`;
 }
 
@@ -484,10 +578,10 @@ async function renderDashboard() {
     </div>
     ${nb.isFree ? `<div class="glass-card" style="text-align:center;padding:6px;margin-bottom:6px;"><small>⏳ Limite vitalício: ${(nb.totalEarned||0).toFixed(2)}/2.00 🍎 GRAM</small></div>` : ''}
     <div style="font-size:14px;color:var(--ash);width:100%;margin-bottom:2px;">👁️ Atenção de L: <b style="color:#e07070;">${userData.suspicion}%</b></div>
-    <div class="suspicion-bar"><div class="suspicion-fill" style="width:${userData.suspicion}%"></div></div>
+    <div class="suspicion-bar"><div class="suspicion-fill" style="width:${Math.max(0, userData.suspicion)}%"></div></div>
     <div class="btn-grid">
       <button class="btn-game btn-main" onclick="openTargets()" ${userData.prisonDays>0?'disabled':''}>✍️ Escrever um Nome</button>
-      <button class="btn-game" onclick="sfxGacha();setScreen('gacha')">🌀 Portal</button>
+      <button class="btn-game" onclick="sfxPortal();setScreen('gacha')">🌀 Portal</button>
       <button class="btn-game" onclick="setScreen('shop')">🛒 Loja</button>
       <button class="btn-game" onclick="setScreen('inventory')">🎒 Inventário</button>
       <button class="btn-game" onclick="setScreen('deposit')">📥 Depósito</button>
@@ -547,6 +641,7 @@ function startWriting(idx) {
     <div style="margin-top:8px;font-size:11px;color:var(--ash);">Pressione Enter para enviar</div>`;
   document.getElementById('writingOverlay').classList.add('overlay-active');
   document.body.classList.add('writing-active');
+  stopAmbient(); // para o drone durante a escrita
   initAudio();
   setTimeout(()=>document.getElementById('nameInput').focus(),300);
   document.getElementById('nameInput').addEventListener('keydown',async function(e){
@@ -559,7 +654,7 @@ function startWriting(idx) {
       } else {
         document.getElementById('writingOverlay').classList.remove('overlay-active');
         document.body.classList.remove('writing-active');
-        try{await apiCall('/user/fail','POST');await refreshUser();sfxFail();}catch(ex){}
+        try{await apiCall('/user/fail','POST');await refreshUser();sfxWind();}catch(ex){}
         showModal('❌','Nome incorreto! Você perdeu 1 página.');
         setScreen('dashboard');
       }
@@ -571,7 +666,7 @@ async function executePlay(t) {
   const pen=document.getElementById('penLine'),deathSeq=document.getElementById('deathSequence'),result=document.getElementById('resultText');
   pen.textContent='';deathSeq.textContent='';deathSeq.style.opacity='0';result.textContent='';result.classList.remove('show');
   const txt1=`Escrevendo "${t.name}"...`;
-  for(let i=0;i<txt1.length;i++){pen.textContent+=txt1[i];sfxWrite();await new Promise(r=>setTimeout(r,55));}
+  for(let i=0;i<txt1.length;i++){pen.textContent+=txt1[i];sfxTypewriter();await new Promise(r=>setTimeout(r,55));}
   await new Promise(r=>setTimeout(r,400));
   deathSeq.textContent='40 segundos se passaram...';deathSeq.style.opacity='1';
   await new Promise(r=>setTimeout(r,1200));
@@ -583,20 +678,20 @@ async function executePlay(t) {
       await new Promise(r=>setTimeout(r,1500));
       result.innerHTML=`<span style="color:#c9a03a;font-size:1.2em;">+${res.reward} 🍎 GRAM</span>`;
       result.classList.add('show');
-      sfxSuccess();
+      sfxHeartbeat();
       if(t.rarity==='legendary')showNotification(`🌟 Um Shinigami testemunhou a morte de ${t.name}!`);
     }else{
       deathSeq.textContent=`A vítima mentiu seu nome real... ${t.name} escapou.`;
       await new Promise(r=>setTimeout(r,1500));
       result.textContent='Nenhuma recompensa.';
       result.classList.add('show');
-      sfxFail();
+      sfxWind();
     }
   }catch(e){
     deathSeq.textContent='Erro na execução...';
     result.textContent=e.message;
     result.classList.add('show');
-    sfxFail();
+    sfxWind();
   }
   await new Promise(r=>setTimeout(r,2000));
   document.getElementById('writingOverlay').classList.remove('overlay-active');
@@ -639,7 +734,7 @@ async function pullGacha(q) {
       const resultsHtml=res.results.map(r=>`<span class="rarity-badge rarity-${r.rarity}">${r.rarity}</span> <span class="text-${r.rarity}">${r.name}</span>`).join('<br>');
       document.getElementById('gachaResult').innerHTML=`<div class="glass-card" style="text-align:center;">${resultsHtml}</div>`;
       showModal('🌀',`Obtido:<br>${resultsHtml}`);
-      sfxGacha();
+      sfxPortal();
       setScreen('dashboard');
     }catch(e){showModal('❌',e.message);}
   });
@@ -816,12 +911,11 @@ function renderProfile() {
     </div>`;
 }
 
-// --- REFERRAL (com link correto e código = Telegram ID) ---
+// --- REFERRAL ---
 async function renderReferral() {
   if(!userData)return;
   let refData;
   try{refData=await apiCall('/user/referral');}catch(e){refData={};}
-  // Código de referral é o telegramId do usuário
   const refCode=userData.telegramId||userData._id;
   const refLink=`https://t.me/Deathnotegods_bot?start=ref_${refCode}`;
   document.getElementById('screen-referral').innerHTML = `
@@ -838,7 +932,7 @@ async function renderReferral() {
 
 function copyRef(link){navigator.clipboard.writeText(link).then(()=>showModal('✅','Link copiado!')).catch(()=>showModal('❌','Erro.'));}
 
-// --- HISTORY (com 🍎 GRAM) ---
+// --- HISTORY ---
 function renderHistory() {
   const el=document.getElementById('screen-history');
   el.innerHTML='<div class="app-header"><button class="back-btn" onclick="setScreen(\'dashboard\')">←</button><div class="logo">Histórico</div></div>';
@@ -862,7 +956,7 @@ async function claimDaily() {
     }else{
       showModal('🎁','+0.01 🍎 GRAM diário!');
     }
-    sfxDaily();
+    sfxDailySound();
     setScreen('dashboard');
   }catch(e){showModal('❌',e.message);}
 }
@@ -870,10 +964,13 @@ async function claimDaily() {
 // ====== INIT ======
 window.onload=async()=>{
   initAudio();
-  const savedToken=localStorage.getItem('auth_token');
+  // Limpar tokens antigos para evitar conflito entre contas
+  localStorage.removeItem('auth_token');
+  localStorage.removeItem('admin_token');
+  const savedToken=sessionStorage.getItem('auth_token');
   if(savedToken){
     authToken=savedToken;
-    try{userData=await apiCall('/user/me');}catch(e){authToken='';localStorage.removeItem('auth_token');}
+    try{userData=await apiCall('/user/me');}catch(e){authToken='';sessionStorage.removeItem('auth_token');}
   }
   if(!authToken){
     const ok=await loginWithTelegram();

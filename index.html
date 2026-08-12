@@ -77,7 +77,7 @@
       position: relative; background: rgba(4,4,6,0.55); backdrop-filter: blur(12px);
       border: 1px solid rgba(216,207,174,0.1); border-radius: 4px 13px 4px 13px;
       padding: clamp(14px, 3vh, 18px) 8px; color: var(--bone); font-weight: 600;
-      font-size: clamp(12px, 2.2vw, 15px); text-align: center; cursor: pointer;
+      font-size: clamp(13px, 2.2vw, 15px); text-align: center; cursor: pointer;
       display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.4); min-height: 75px; transition: all 0.2s;
     }
@@ -87,7 +87,7 @@
     .btn-game:disabled { opacity: 0.4; pointer-events: none; }
     .btn-main { grid-column: 1/-1; background: linear-gradient(135deg, #1a0a0e, #2c1017 55%, #1a0a0e); border-color: var(--blood-bright); font-family: 'Cinzel', serif; font-size: clamp(14px, 3.5vw, 17px); font-weight: 700; letter-spacing: 1px; min-height: 85px; }
 
-    .rarity-badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 3px; font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; font-family: 'Cinzel', serif; }
+    .rarity-badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; font-family: 'Cinzel', serif; }
     .rarity-common { background: rgba(90,90,100,0.28); color: #a9a5b0; border: 1px solid #4a4852; }
     .rarity-uncommon { background: rgba(50,110,60,0.28); color: #8fcf8f; border: 1px solid #2e5a2e; }
     .rarity-rare { background: rgba(77,166,255,0.28); color: #4da6ff; border: 1px solid #2a5a8c; }
@@ -110,9 +110,9 @@
     .btn-modal:disabled { opacity: 0.5; pointer-events: none; }
 
     .tutorial-step { background: var(--panel); backdrop-filter: var(--glass); border: 1px solid rgba(216,207,174,0.08); border-radius: 4px 13px 4px 13px; padding: 18px; margin-bottom: 10px; width: 100%; }
-    .tutorial-step h3 { font-family: 'Cinzel', serif; margin-bottom: 8px; color: var(--rot-gold-light); font-size: 17px; }
-    .tutorial-step p { font-size: 13px; line-height: 1.6; color: var(--ash); }
-    .large-input { width: 100%; padding: 12px; background: #000; border: 1px solid var(--ash); color: #fff; border-radius: 6px; margin: 8px 0; font-size: 15px; }
+    .tutorial-step h3 { font-family: 'Cinzel', serif; margin-bottom: 8px; color: var(--rot-gold-light); font-size: 18px; }
+    .tutorial-step p { font-size: 14px; line-height: 1.6; color: var(--ash); }
+    .large-input { width: 100%; padding: 12px; background: #000; border: 1px solid var(--ash); color: #fff; border-radius: 6px; margin: 8px 0; font-size: 16px; }
 
     .notification-bar {
       position: fixed; top: 0; left: 0; right: 0; z-index: 200;
@@ -126,7 +126,7 @@
 
     .target-card { padding: 18px !important; margin-bottom: 12px !important; cursor: pointer; }
     .target-card .target-name { font-size: 18px !important; font-weight: 700 !important; margin: 5px 0 !important; }
-    .target-card .target-stats { font-size: 13px !important; }
+    .target-card .target-stats { font-size: 14px !important; }
 
     @keyframes fallIn {
       0% { transform: translateY(-120vh) rotate(-35deg); opacity: 0; }
@@ -152,7 +152,7 @@
     .suspicion-bar { width: 100%; height: 8px; background: rgba(255,255,255,0.25); border-radius: 4px; margin: 6px 0 12px; overflow: hidden; }
     .suspicion-fill { height: 100%; background: linear-gradient(90deg, #c4172a, #e07070); border-radius: 4px; transition: width 0.5s; min-width: 2px; }
 
-    .price-info { text-align: center; font-size: 13px; color: var(--ash); margin-bottom: 12px; background: rgba(255,255,255,0.03); padding: 8px; border-radius: 4px; }
+    .price-info { text-align: center; font-size: 14px; color: var(--ash); margin-bottom: 12px; background: rgba(255,255,255,0.03); padding: 8px; border-radius: 4px; }
 
     .audio-toggle {
       position: fixed; top: 10px; right: 10px; z-index: 300;
@@ -167,8 +167,11 @@
     .text-legendary { color: #ffd700; }
 
     .tab-row { display: flex; gap: 4px; margin-bottom: 8px; flex-wrap: wrap; justify-content: center; }
-    .tab-btn { background: #2a3a4e; border: 2px solid #4a5a6e; color: #fff; padding: 6px 10px; font-family: 'Cinzel', serif; font-size: 11px; cursor: pointer; border-radius: 4px; }
+    .tab-btn { background: #2a3a4e; border: 2px solid #4a5a6e; color: #fff; padding: 8px 12px; font-family: 'Cinzel', serif; font-size: 13px; cursor: pointer; border-radius: 4px; }
     .tab-btn.active { border-color: var(--rot-gold); background: #3a4a5e; color: var(--rot-gold-light); }
+
+    .referral-list { max-height: 200px; overflow-y: auto; margin-top: 8px; }
+    .referral-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; }
   </style>
 </head>
 <body>
@@ -217,7 +220,7 @@ let authToken = '';
 let userData = null;
 let targets = [];
 let targetIndex = null;
-let gramPriceUSD = null;
+let gramPriceUSD = 0.05; // fallback visível
 
 // ====== ÁUDIO ======
 let audioCtx = null;
@@ -388,14 +391,17 @@ async function refreshUser() {
   } catch(e) {}
 }
 
+// ✅ Cotação usando o ID exato do Gram Catcher (the-open-network)
 async function updateGramPrice() {
   try {
-    const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=toncoin&vs_currencies=usd');
+    const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd');
     const data = await res.json();
-    if (data && data.toncoin && data.toncoin.usd > 0) {
-      gramPriceUSD = data.toncoin.usd;
+    if (data && data['the-open-network'] && data['the-open-network'].usd > 0) {
+      gramPriceUSD = data['the-open-network'].usd;
     }
-  } catch(e) {}
+  } catch(e) {
+    // mantém o último valor ou fallback 0.05
+  }
 }
 
 function formatGram(amount) {
@@ -403,8 +409,8 @@ function formatGram(amount) {
 }
 
 function formatUSD(amount) {
-  if (!gramPriceUSD) return '';
-  const usd = Number(amount) * gramPriceUSD;
+  // sempre retorna algo visível
+  const usd = Number(amount) * (gramPriceUSD || 0.05);
   return `≈ $${usd.toFixed(2)} USD`;
 }
 
@@ -440,7 +446,7 @@ function confirmAction(title, message, onConfirm) {
   document.getElementById('modalBox').innerHTML = `
     <div style="font-size:40px;">⚠️</div>
     <h3 style="color:var(--rot-gold-light);margin:8px 0;">${title}</h3>
-    <p style="line-height:1.5;font-size:15px;margin:12px 0;">${message}</p>
+    <p style="line-height:1.5;font-size:16px;margin:12px 0;">${message}</p>
     <div style="display:flex;gap:8px;justify-content:center;margin-top:16px;">
       <button class="btn-modal btn-modal-secondary" id="cancelBtn">Cancelar</button>
       <button class="btn-modal" id="confirmBtn">Confirmar</button>
@@ -490,10 +496,10 @@ function renderIntro() {
         </div>
       </div>
       <div style="font-family:'UnifrakturMaguntia',cursive;font-size:clamp(40px,10vw,52px);color:var(--bone);text-shadow:0 0 25px rgba(125,15,30,0.75),0 0 60px rgba(125,15,30,0.3),0 0 4px rgba(200,255,77,0.2);letter-spacing:4px;margin-top:12px;text-align:center;">Death Note</div>
-      <div style="font-family:'Special Elite',monospace;font-size:11px;letter-spacing:5px;text-transform:uppercase;color:#8a8a8a;margin-top:8px;">O caderno escolheu você</div>
+      <div style="font-family:'Special Elite',monospace;font-size:12px;letter-spacing:5px;text-transform:uppercase;color:#8a8a8a;margin-top:8px;">O caderno escolheu você</div>
       <div style="width:140px;height:1px;background:linear-gradient(90deg,transparent,var(--blood-bright),transparent);margin:18px 0;position:relative;"><span style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:11px;color:var(--blood-bright);background:var(--abyss);padding:0 8px;">死</span></div>
-      <div style="font-family:'Yuji Syuku',serif;font-size:14px;color:var(--ash);max-width:280px;line-height:1.75;">"O nome escrito neste caderno terá seu coração parado em 40 segundos."</div>
-      <button onclick="setScreen('tutorial')" style="margin-top:22px;padding:14px 42px;background:transparent;border:1px solid var(--blood-bright);border-radius:2px 10px 2px 10px;color:var(--bone);font-family:'Special Elite',monospace;font-size:14px;letter-spacing:3px;text-transform:uppercase;cursor:pointer;">Abrir o Caderno</button>
+      <div style="font-family:'Yuji Syuku',serif;font-size:15px;color:var(--ash);max-width:280px;line-height:1.75;">"O nome escrito neste caderno terá seu coração parado em 40 segundos."</div>
+      <button onclick="setScreen('tutorial')" style="margin-top:22px;padding:14px 42px;background:transparent;border:1px solid var(--blood-bright);border-radius:2px 10px 2px 10px;color:var(--bone);font-family:'Special Elite',monospace;font-size:15px;letter-spacing:3px;text-transform:uppercase;cursor:pointer;">Abrir o Caderno</button>
     </div>`;
 }
 
@@ -524,7 +530,7 @@ async function renderDashboard() {
   const title = getTitle(userData.kiraXP);
   const prisonMsg = userData.prisonDays > 0 ? `<div class="glass-card" style="background:rgba(180,0,0,0.3);text-align:center;">🔒 Preso por ${userData.prisonDays} dia(s).</div>` : '';
   const offerBtn = (!userData.hasStarterPack)
-    ? `<button class="btn-game btn-offer" style="grid-column:1/-1;min-height:65px;margin-bottom:10px;font-size:15px;" onclick="buyStarterPack()">🔥 Oferta Limitada — Pacote Kira Iniciante (8 🍎 GRAM) -51%</button>`
+    ? `<button class="btn-game btn-offer" style="grid-column:1/-1;min-height:65px;margin-bottom:10px;font-size:16px;" onclick="buyStarterPack()">🔥 Oferta Limitada — Pacote Kira Iniciante (8 🍎 GRAM) -51%</button>`
     : '';
 
   document.getElementById('screen-dashboard').innerHTML = `
@@ -532,18 +538,18 @@ async function renderDashboard() {
     ${offerBtn}
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;width:100%;margin-bottom:8px;">
       <div class="glass-card" style="text-align:center;padding:10px 4px;">
-        <span style="color:#c9a03a;font-size:clamp(15px,4vw,20px);">${(userData.balance||0).toFixed(2)} 🍎</span>
-        <span class="gram-usd" style="font-size:0.7em;color:#8a9bb5;">${formatUSD(userData.balance||0)}</span>
+        <span style="color:#c9a03a;font-size:clamp(16px,4vw,22px);">${(userData.balance||0).toFixed(2)} 🍎</span>
+        <span class="gram-usd" style="font-size:0.75em;color:#8a9bb5;">${formatUSD(userData.balance||0)}</span>
       </div>
-      <div class="glass-card" style="text-align:center;padding:10px 4px;"><span style="color:#8a9bb5;font-size:clamp(15px,4vw,20px);">${nb.pages}/${nb.maxPages}</span><br><small>📄 Páginas</small></div>
-      <div class="glass-card" style="text-align:center;padding:10px 4px;background:rgba(180,20,20,0.2);"><span style="color:#e07070;font-size:clamp(15px,4vw,20px);">${userData.suspicion || 0}%</span><br><small>🕵️ Suspeita</small></div>
+      <div class="glass-card" style="text-align:center;padding:10px 4px;"><span style="color:#8a9bb5;font-size:clamp(16px,4vw,22px);">${nb.pages}/${nb.maxPages}</span><br><small>📄 Páginas</small></div>
+      <div class="glass-card" style="text-align:center;padding:10px 4px;background:rgba(180,20,20,0.2);"><span style="color:#e07070;font-size:clamp(16px,4vw,22px);">${userData.suspicion || 0}%</span><br><small>🕵️ Suspeita</small></div>
     </div>
     ${prisonMsg}
-    <div style="font-size:13px;color:var(--ash);margin:6px 0;background:rgba(255,255,255,0.05);padding:6px;border-radius:4px;">
-      🎭 <b style="color:var(--rot-gold-light);">${title}</b> — Level Kira: ${kiraLevel} <small style="color:var(--blood-bright);">(+${(kiraLevel*0.5).toFixed(1)}% chance)</small>
+    <div style="font-size:15px;color:var(--ash);margin:6px 0;background:rgba(255,255,255,0.05);padding:8px;border-radius:4px;">
+      🎭 <b style="color:var(--rot-gold-light);">${title}</b> — Level Kira: ${kiraLevel} <small style="color:var(--blood-bright);font-size:14px;">(+${(kiraLevel*0.5).toFixed(1)}% chance)</small>
     </div>
     ${nb.isFree ? `<div class="glass-card" style="text-align:center;padding:6px;margin-bottom:6px;"><small>⏳ Limite vitalício: ${(nb.totalEarned||0).toFixed(2)}/2.00 🍎 GRAM</small></div>` : ''}
-    <div style="font-size:14px;color:var(--ash);width:100%;margin-bottom:2px;">👁️ Atenção de L: <b style="color:#e07070;">${userData.suspicion || 0}%</b></div>
+    <div style="font-size:16px;color:var(--ash);width:100%;margin-bottom:2px;">👁️ Atenção de L: <b style="color:#e07070;">${userData.suspicion || 0}%</b></div>
     <div class="suspicion-bar"><div class="suspicion-fill" style="width:${Math.max(0, userData.suspicion || 0)}%"></div></div>
     <div class="btn-grid">
       <button class="btn-game btn-main" onclick="openTargets()" ${userData.prisonDays>0?'disabled':''}>✍️ Escrever um Nome</button>
@@ -574,7 +580,7 @@ function renderTargets() {
   const nb = activeNb();
   document.getElementById('screen-targets').innerHTML = `
     <div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Alvos</div></div>
-    <div style="font-family:'Yuji Syuku';font-size:18px;margin:12px 0;">Escolha um alvo:</div>
+    <div style="font-family:'Yuji Syuku';font-size:20px;margin:12px 0;">Escolha um alvo:</div>
     ${targets.map((t,i) => `
       <div class="glass-card target-card" onclick="startWriting(${i})">
         <span class="rarity-badge rarity-${t.rarity}">${t.rarity}</span>
@@ -605,7 +611,7 @@ function startWriting(idx) {
     <div class="death-sequence" id="deathSequence"></div>
     <div class="result-text" id="resultText"></div>
     <input class="writing-input" id="nameInput" placeholder="Digite o nome completo..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
-    <div style="margin-top:8px;font-size:11px;color:var(--ash);">Pressione Enter para enviar</div>`;
+    <div style="margin-top:8px;font-size:12px;color:var(--ash);">Pressione Enter para enviar</div>`;
   document.getElementById('writingOverlay').classList.add('overlay-active');
   document.body.classList.add('writing-active');
   initAudio();
@@ -665,7 +671,7 @@ async function executePlay(t) {
   setScreen('dashboard');
 }
 
-// --- GACHA ---
+// --- GACHA (mensagem corrigida) ---
 function renderGacha() {
   document.getElementById('screen-gacha').innerHTML = `
     <div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Portal</div></div>
@@ -690,7 +696,10 @@ function renderGacha() {
 
 async function pullGacha(q) {
   if(!userData)return;
-  if(userData.inventory.length+q>userData.slots){showModal('❌','Inventário cheio!');return;}
+  if(userData.inventory.length+q>userData.slots){
+    showModal('📦','Sem espaço! Expanda seu inventário na Loja.');
+    return;
+  }
   const cost=q*4;
   if(userData.balance<cost){showModal('❌','Saldo insuficiente.');return;}
   confirmAction('Confirmar Invocação',`${q}x Invocação\nCusto: ${cost} 🍎 GRAM`,async()=>{
@@ -708,7 +717,10 @@ async function pullGacha(q) {
 
 async function buyFixedNb(rarity) {
   if(!userData)return;
-  if(userData.inventory.length+1>userData.slots){showModal('❌','Inventário cheio!');return;}
+  if(userData.inventory.length+1>userData.slots){
+    showModal('📦','Sem espaço! Expanda seu inventário na Loja.');
+    return;
+  }
   const prices={common:3,uncommon:10,rare:25,epic:50,legendary:100};
   if(userData.balance<prices[rarity]){showModal('❌','Saldo insuficiente.');return;}
   confirmAction('Confirmar Compra',`Caderno ${rarity}\nPreço: ${prices[rarity]} 🍎 GRAM`,async()=>{
@@ -738,7 +750,7 @@ function renderShop() {
     ${shopItems.map(i=>`
       <div class="glass-card" style="display:flex;align-items:center;gap:10px;">
         <span style="font-size:26px;">${i.icon}</span>
-        <div style="flex:1;"><b>${i.name}</b><br><small style="color:var(--ash);">${i.desc}</small><br><span style="color:#c9a03a;">${i.price} 🍎 GRAM</span></div>
+        <div style="flex:1;"><b>${i.name}</b><br><small style="color:var(--ash);font-size:13px;">${i.desc}</small><br><span style="color:#c9a03a;font-size:15px;">${i.price} 🍎 GRAM</span></div>
         <button class="btn-game" style="padding:8px 14px;" onclick="buyItem('${i.id}')" ${i.id==='starter_pack'?starterDisabled:''}>${i.id==='starter_pack'?starterText:'Comprar'}</button>
       </div>`).join('')}`;
 }
@@ -766,7 +778,7 @@ function renderInventory() {
   if(!userData)return;
   document.getElementById('screen-inventory').innerHTML = `
     <div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Inventário</div></div>
-    <div style="font-size:13px;color:var(--ash);margin-bottom:8px;">Slots usados: ${userData.inventory.length}/${userData.slots}</div>
+    <div style="font-size:15px;color:var(--ash);margin-bottom:8px;">Slots usados: ${userData.inventory.length}/${userData.slots}</div>
     ${userData.inventory.map(n=>`
       <div class="glass-card" style="display:flex;align-items:center;gap:10px;">
         <span style="font-size:26px;">📓</span>
@@ -774,7 +786,7 @@ function renderInventory() {
           <b class="text-${n.rarity}">${n.name}</b>
           <span class="rarity-badge rarity-${n.rarity}" style="margin-left:4px;">${n.rarity}</span>
           ${n.isFree?' <small style="color:var(--ash);">(Grátis)</small>':''}<br>
-          <small style="color:var(--ash);">📄${n.pages}/${n.maxPages} p/ dia | ⏳${n.dur}d | ${n.mult}x</small>
+          <small style="color:var(--ash);font-size:13px;">📄${n.pages}/${n.maxPages} p/ dia | ⏳${n.dur}d | ${n.mult}x</small>
         </div>
         <button class="btn-game" style="padding:6px 10px;" ${n.active?'disabled':''} onclick="activateNb('${n.id}')">${n.active?'Ativo':'Usar'}</button>
       </div>`).join('')}`;
@@ -793,13 +805,13 @@ function renderDeposit() {
   document.getElementById('screen-deposit').innerHTML = `
     <div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Depósito</div></div>
     <div class="glass-card" style="padding:18px;text-align:center;">
-      <p style="font-size:15px;color:var(--rot-gold-light);">📥 Envie 🍎 GRAM para:</p>
-      <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:12px;margin:10px 0;word-break:break-all;font-family:monospace;font-size:14px;">${WALLET_ADDRESS}</div>
+      <p style="font-size:16px;color:var(--rot-gold-light);">📥 Envie 🍎 GRAM para:</p>
+      <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:12px;margin:10px 0;word-break:break-all;font-family:monospace;font-size:15px;">${WALLET_ADDRESS}</div>
       <button class="copy-btn" onclick="copyWallet()">📋 Copiar</button>
       <input id="depositAmount" type="number" placeholder="Valor enviado (GRAM)" min="0.5" step="0.1" class="large-input">
       <input id="depositTxid" placeholder="TXID da transação" class="large-input">
       <button class="btn-modal" style="width:100%;margin-top:8px;" onclick="submitDeposit()">Enviar Comprovante</button>
-      <p style="font-size:11px;color:var(--ash);margin-top:8px;">O administrador creditará manualmente.</p>
+      <p style="font-size:12px;color:var(--ash);margin-top:8px;">O administrador creditará manualmente.</p>
     </div>`;
 }
 
@@ -824,8 +836,8 @@ function renderWithdraw() {
   document.getElementById('screen-withdraw').innerHTML = `
     <div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Saque</div></div>
     <div class="glass-card" style="padding:18px;text-align:center;">
-      <p style="font-size:17px;color:var(--rot-gold-light);">📤 Saldo: <b>${(userData?.balance||0).toFixed(2)} 🍎 GRAM</b> <span style="font-size:0.8em;color:#8a9bb5;">${formatUSD(userData?.balance||0)}</span></p>
-      <p style="font-size:13px;color:var(--ash);">Taxa de 5% (inclui rede). Mínimo 1 🍎 GRAM.</p>
+      <p style="font-size:18px;color:var(--rot-gold-light);">📤 Saldo: <b>${(userData?.balance||0).toFixed(2)} 🍎 GRAM</b> <span style="font-size:0.8em;color:#8a9bb5;">${formatUSD(userData?.balance||0)}</span></p>
+      <p style="font-size:14px;color:var(--ash);">Taxa de 5% (inclui rede). Mínimo 1 🍎 GRAM.</p>
       <input id="withdrawAddr" placeholder="Sua carteira TON" class="large-input">
       <input id="withdrawAmount" type="number" placeholder="Valor em GRAM" min="1" step="0.1" class="large-input">
       <button class="btn-modal" style="width:100%;" onclick="requestWithdraw()">Solicitar Saque</button>
@@ -860,8 +872,8 @@ function renderProfile() {
   const daysLeft=nb?(nb.isFree?Math.ceil((new Date(nb.createdAt).getTime()+7776000000-Date.now())/86400000):Math.ceil((new Date(nb.createdAt).getTime()+nb.dur*86400000-Date.now())/86400000)):'N/A';
   document.getElementById('screen-profile').innerHTML = `
     <div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Perfil</div></div>
-    <div class="glass-card" style="padding:18px;text-align:left;font-size:14px;">
-      <p style="font-size:20px;text-align:center;color:var(--rot-gold-light);margin-bottom:10px;">🎭 ${title}</p>
+    <div class="glass-card" style="padding:18px;text-align:left;font-size:15px;">
+      <p style="font-size:22px;text-align:center;color:var(--rot-gold-light);margin-bottom:10px;">🎭 ${title}</p>
       <p style="margin:6px 0;"><b>Caderno ativo:</b> ${nb?.name||'Nenhum'} (${nb?.rarity||'comum'})</p>
       <p style="margin:6px 0;"><b>Páginas:</b> ${nb?.pages||0}/${nb?.maxPages||0} por dia</p>
       <p style="margin:6px 0;"><b>Multiplicador:</b> ${nb?.mult||1}x</p>
@@ -877,7 +889,7 @@ function renderProfile() {
     </div>`;
 }
 
-// --- REFERRAL (com lista de indicados) ---
+// --- REFERRAL (com lista de indicados e scroll) ---
 async function renderReferral() {
   if(!userData)return;
   let refData, referralsList = [];
@@ -888,22 +900,24 @@ async function renderReferral() {
   document.getElementById('screen-referral').innerHTML = `
     <div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Referral</div></div>
     <div class="glass-card" style="text-align:center;padding:18px;">
-      <p style="font-size:17px;color:var(--rot-gold-light);">👥 Sistema de Referral</p>
-      <p style="font-size:13px;color:var(--ash);margin:10px 0;">Convide amigos e ganhe <b style="color:#c9a03a;">5%</b> das recargas deles!</p>
-      <p style="font-size:11px;color:var(--ash);">Seu código: <b style="color:var(--blood-bright);">${refCode}</b></p>
-      <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:12px;margin:10px 0;word-break:break-all;font-family:monospace;font-size:13px;">${escapeHtml(refLink)}</div>
+      <p style="font-size:18px;color:var(--rot-gold-light);">👥 Sistema de Referral</p>
+      <p style="font-size:15px;color:var(--ash);margin:10px 0;">Convide amigos e ganhe <b style="color:#c9a03a;">5%</b> das recargas deles!</p>
+      <p style="font-size:13px;color:var(--ash);">Seu código: <b style="color:var(--blood-bright);">${refCode}</b></p>
+      <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:12px;margin:10px 0;word-break:break-all;font-family:monospace;font-size:14px;">${escapeHtml(refLink)}</div>
       <button class="copy-btn" onclick="copyRef('${escapeHtml(refLink)}')">📋 Copiar Link</button>
-      <p style="font-size:13px;color:var(--ash);margin-top:14px;">Ganhos: <b style="color:#c9a03a;">${(refData.referralEarnings||0).toFixed(2)} 🍎 GRAM</b></p>
+      <p style="font-size:15px;color:var(--ash);margin-top:14px;">Ganhos: <b style="color:#c9a03a;">${(refData.referralEarnings||0).toFixed(2)} 🍎 GRAM</b></p>
     </div>
     <div class="glass-card" style="padding:16px;">
-      <h3 style="color:var(--rot-gold-light);margin-bottom:8px;">👤 Indicados</h3>
-      ${referralsList.length === 0 ? '<p style="color:var(--ash);">Nenhum indicado ainda.</p>' :
-        referralsList.map(r => `
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);">
-            <span>${escapeHtml(r.username)}</span>
-            <span style="color:#c9a03a;font-size:12px;">+${r.commissionEarned} 🍎</span>
-          </div>`).join('')
-      }
+      <h3 style="color:var(--rot-gold-light);margin-bottom:8px;font-size:16px;">👤 Indicados</h3>
+      <div class="referral-list">
+        ${referralsList.length === 0 ? '<p style="color:var(--ash);font-size:14px;">Nenhum indicado ainda.</p>' :
+          referralsList.map(r => `
+            <div class="referral-item">
+              <span>${escapeHtml(r.username)}</span>
+              <span style="color:#c9a03a;font-size:14px;">+${r.commissionEarned} 🍎</span>
+            </div>`).join('')
+        }
+      </div>
     </div>`;
 }
 
@@ -922,21 +936,21 @@ async function renderHistory() {
       <button class="tab-btn" id="tabTransacoes" onclick="switchHistoryTab('transacoes')">💳 Transações</button>
     </div>
     <div id="historyExecucoes">
-      ${(!userData?.history?.length) ? '<div class="glass-card" style="text-align:center;color:var(--ash);">Nenhuma execução ainda.</div>' :
+      ${(!userData?.history?.length) ? '<div class="glass-card" style="text-align:center;color:var(--ash);font-size:14px;">Nenhuma execução ainda.</div>' :
         userData.history.slice().reverse().map(h => `
           <div class="glass-card" style="display:flex;justify-content:space-between;align-items:center;">
-            <span>${escapeHtml(h.target)} <span class="rarity-badge rarity-${h.rarity}">${h.rarity}</span></span>
-            <span style="color:${h.success?'#7cb87c':'#e07070'}">${h.success?'✅ +'+h.reward+' 🍎 GRAM':'❌ Falhou'}</span>
+            <span style="font-size:14px;">${escapeHtml(h.target)} <span class="rarity-badge rarity-${h.rarity}">${h.rarity}</span></span>
+            <span style="color:${h.success?'#7cb87c':'#e07070'};font-size:14px;">${h.success?'✅ +'+h.reward+' 🍎 GRAM':'❌ Falhou'}</span>
           </div>`).join('')
       }
     </div>
     <div id="historyTransacoes" style="display:none;">
-      ${transactions.length === 0 ? '<div class="glass-card" style="text-align:center;color:var(--ash);">Nenhuma transação.</div>' :
+      ${transactions.length === 0 ? '<div class="glass-card" style="text-align:center;color:var(--ash);font-size:14px;">Nenhuma transação.</div>' :
         transactions.map(tx => `
           <div class="glass-card" style="display:flex;justify-content:space-between;align-items:center;">
-            <span>${tx.type==='deposit'?'📥 Depósito':'📤 Saque'}</span>
-            <span style="color:#c9a03a;">${tx.amount} 🍎</span>
-            <span class="status-${tx.status}" style="font-size:11px;">${tx.status==='pending'?'⏳':tx.status==='approved'?'✅':'❌'}</span>
+            <span style="font-size:14px;">${tx.type==='deposit'?'📥 Depósito':'📤 Saque'}</span>
+            <span style="color:#c9a03a;font-size:14px;">${tx.amount} 🍎</span>
+            <span class="status-${tx.status}" style="font-size:13px;">${tx.status==='pending'?'⏳':tx.status==='approved'?'✅':'❌'}</span>
           </div>`).join('')
       }
     </div>`;
@@ -962,15 +976,15 @@ async function renderRanking() {
     <div id="rankSaldo">
       ${rankingData.topBalance.map((u,i) => `
         <div class="glass-card" style="display:flex;justify-content:space-between;align-items:center;">
-          <span>#${i+1} ${escapeHtml(u.username||'Anônimo')}</span>
-          <span style="color:#c9a03a;">${(u.balance||0).toFixed(2)} 🍎</span>
+          <span style="font-size:15px;">#${i+1} ${escapeHtml(u.username||'Anônimo')}</span>
+          <span style="color:#c9a03a;font-size:15px;">${(u.balance||0).toFixed(2)} 🍎</span>
         </div>`).join('')}
     </div>
     <div id="rankExecucoes" style="display:none;">
       ${rankingData.topWins.map((u,i) => `
         <div class="glass-card" style="display:flex;justify-content:space-between;align-items:center;">
-          <span>#${i+1} ${escapeHtml(u.username||'Anônimo')}</span>
-          <span style="color:#e07070;">${u.wins||0} 💀</span>
+          <span style="font-size:15px;">#${i+1} ${escapeHtml(u.username||'Anônimo')}</span>
+          <span style="color:#e07070;font-size:15px;">${u.wins||0} 💀</span>
         </div>`).join('')}
     </div>`;
 }

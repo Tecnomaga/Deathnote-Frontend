@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Death Note · Play-to-Earn</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Cinzel:wght@400;600;700;900&family=Zen+Kaku+Gothic+New:wght@300;400;500;700;900&family=Yuji+Syuku&family=Special+Elite&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --abyss: #050507;
+      --panel: rgba(15, 13, 18, 0.72);
+      --bone: #d8cfae;
+      --ash: #6e6879;
+      --blood: #7d0f1e;
+      --blood-bright: #c4172a;
+      --rot-gold: #a9863f;
+      --rot-gold-light: #ddbb6c;
+      --shinigami-eye: #c8ff4d;
+      --red-glow: rgba(196, 23, 42, 0.55);
+      --glass: blur(20px);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; user-select: none; }
+    html, body { height: 100%; width: 100%; background: var(--abyss); color: var(--bone); font-family: 'Zen Kaku Gothic New', sans-serif; overflow: hidden; position: fixed; }
+    body { padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+    button, input { font-family: inherit; }
+    button:focus-visible, input:focus-visible { outline: 2px solid var(--shinigami-eye); outline-offset: 2px; }
+    ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: rgba(196,23,42,0.4); border-radius: 4px; }
+    #particleCanvas { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.85; }
+    .bg-layer {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background: radial-gradient(ellipse 70% 50% at 50% 8%, rgba(60,12,18,0.45), transparent 60%),
+                  radial-gradient(ellipse 90% 70% at 85% 95%, rgba(10,25,10,0.25), transparent 55%),
+                  radial-gradient(ellipse 100% 100% at 50% 100%, rgba(8,7,10,1), var(--abyss) 70%);
+    }
+    .film-grain {
+      position: fixed; inset: -10%; z-index: 3; pointer-events: none; opacity: 0.05;
+      mix-blend-mode: overlay;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      animation: grainShift 8s steps(6) infinite;
+    }
+    @keyframes grainShift { 0%{transform:translate(0,0)} 20%{transform:translate(-2%,-1%)} 40%{transform:translate(1%,2%)} 60%{transform:translate(-1%,1%)} 80%{transform:translate(2%,-2%)} 100%{transform:translate(0,0)} }
+    .vignette { position: fixed; inset: 0; z-index: 4; background: radial-gradient(circle at center, transparent 33%, rgba(0,0,0,0.75)); pointer-events: none; }
+    .shinigami-layer {
+      position: fixed; inset: 0; z-index: 2; pointer-events: none;
+      display: flex; align-items: flex-start; justify-content: center;
+      opacity: 0.5; animation: shinigamiDrift 14s ease-in-out infinite;
+    }
+    @keyframes shinigamiDrift { 0%,100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-14px) scale(1.015); } }
+    .shinigami-figure { width: min(120vw, 720px); height: auto; overflow: visible; filter: drop-shadow(0 0 40px rgba(0,0,0,0.9)); }
+    .shinigami-eye-glow { fill: var(--shinigami-eye); filter: drop-shadow(0 0 6px var(--shinigami-eye)) drop-shadow(0 0 16px rgba(200,255,77,0.5)); animation: eyeBreath 5.5s ease-in-out infinite; transform-origin: center; }
+    .shinigami-eye-glow.right { animation-delay: 0.15s; }
+    @keyframes eyeBreath { 0%,100% { opacity: 0.35; transform: scaleY(1); } 45% { opacity: 0.9; } 50% { opacity: 0.05; transform: scaleY(0.15); } 55% { opacity: 0.9; } }
+    body.writing-active .shinigami-layer { opacity: 0.85; animation-duration: 3s; }
+    @media (prefers-reduced-motion: reduce) { .shinigami-layer, .shinigami-eye-glow { animation: none !important; } .film-grain { animation: none !important; } }
+    .app-root { position: relative; z-index: 10; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; overflow: hidden; }
+    .screen { position: absolute; inset: 0; display: none; flex-direction: column; align-items: center; padding: 20px 16px 28px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+    .screen.active { display: flex; }
+    .app-header { width: 100%; display: flex; align-items: center; justify-content: center; padding: 6px 0 18px; position: relative; flex-shrink: 0; }
+    .logo { font-family: 'UnifrakturMaguntia', cursive; font-size: clamp(24px, 7vw, 32px); color: var(--bone); text-shadow: 0 0 16px var(--red-glow), 0 0 38px rgba(196,23,42,0.35); letter-spacing: 2.5px; animation: titlePulse 3.4s ease-in-out infinite; }
+    @keyframes titlePulse { 0%,100%{ text-shadow: 0 0 14px var(--red-glow), 0 0 34px rgba(125,15,30,0.3); } 50%{ text-shadow: 0 0 22px rgba(196,23,42,0.85), 0 0 55px rgba(125,15,30,0.55); } }
+    .back-btn { position: absolute; left: 0; background: rgba(6,5,8,0.6); backdrop-filter: blur(10px); border: 1px solid rgba(216,207,174,0.15); border-radius: 3px 9px 9px 3px; color: var(--bone); padding: 10px 16px; font-size: 15px; font-family: 'Special Elite', monospace; cursor: pointer; }
+    .back-btn:active { background: var(--blood); border-color: var(--blood-bright); box-shadow: 0 0 15px var(--red-glow); }
+    .glass-card {
+      position: relative; background: var(--panel); backdrop-filter: var(--glass); -webkit-backdrop-filter: var(--glass);
+      border: 1px solid rgba(216,207,174,0.09); border-radius: 3px 12px 3px 12px; padding: 16px; margin-bottom: 10px;
+      box-shadow: 0 10px 26px rgba(0,0,0,0.55);
+    }
+    .glass-card::before { content: ''; position: absolute; top: 0; left: 14px; right: 14px; height: 1px; background: linear-gradient(90deg, transparent, rgba(196,23,42,0.35), transparent); }
+    .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; margin-top: 10px; }
+    .btn-game {
+      position: relative; background: rgba(4,4,6,0.55); backdrop-filter: blur(12px);
+      border: 1px solid rgba(216,207,174,0.1); border-radius: 4px 13px 4px 13px;
+      padding: clamp(16px, 3.5vh, 20px) 8px; color: var(--bone); font-weight: 600;
+      font-size: clamp(13px, 2.2vw, 16px); text-align: center; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4); min-height: 80px; transition: all 0.2s;
+    }
+    .btn-game::after { content: ''; position: absolute; inset: 0; border-radius: inherit; opacity: 0; background: radial-gradient(circle at 50% 50%, rgba(196,23,42,0.5), transparent 70%); transition: opacity 0.3s; }
+    .btn-game:active { border-color: var(--blood-bright); transform: scale(0.95); box-shadow: 0 0 20px var(--red-glow); }
+    .btn-game:active::after { opacity: 1; }
+    .btn-main { grid-column: 1/-1; background: linear-gradient(135deg, #1a0a0e, #2c1017 55%, #1a0a0e); border-color: var(--blood-bright); font-family: 'Cinzel', serif; font-size: clamp(15px, 3.5vw, 18px); font-weight: 700; letter-spacing: 1.5px; min-height: 90px; }
+    .rarity-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 3px; font-size: 10px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; font-family: 'Cinzel', serif; }
+    .rarity-common { background: rgba(90,90,100,0.28); color: #a9a5b0; border: 1px solid #4a4852; }
+    .rarity-uncommon { background: rgba(50,110,60,0.28); color: #8fcf8f; border: 1px solid #2e5a2e; }
+    .rarity-rare { background: rgba(77,166,255,0.28); color: #4da6ff; border: 1px solid #2a5a8c; }
+    .rarity-epic { background: rgba(120,60,160,0.28); color: #cc9ee6; border: 1px solid #4a2d5c; }
+    .rarity-legendary { background: rgba(255,215,0,0.14); color: #ffd700; border: 1px solid #ffd700; text-shadow: 0 0 8px rgba(255,215,0,0.5); }
+    .portal-container { width: clamp(180px, 45vw, 220px); height: clamp(180px, 45vw, 220px); margin: 14px auto 18px; }
+    .portal-outer { width: 100%; height: 100%; border-radius: 50%; background: conic-gradient(from 0deg, #0d0a0f, #3a0710, #0d0a0f, #1a0d05, #0d0a0f); animation: spin 10s linear infinite; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 50px rgba(196,23,42,0.45), inset 0 0 34px rgba(0,0,0,0.85); }
+    .portal-inner { width: 78%; height: 78%; border-radius: 50%; background: radial-gradient(circle, #0a0a12, #000); box-shadow: inset 0 0 34px rgba(196,23,42,0.55), inset 0 0 60px rgba(200,255,77,0.08); display: flex; align-items: center; justify-content: center; font-size: 46px; animation: portalGlow 2.2s ease-in-out infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes portalGlow { 0%,100%{box-shadow:inset 0 0 34px rgba(196,23,42,0.55), inset 0 0 60px rgba(200,255,77,0.08)} 50%{box-shadow:inset 0 0 60px rgba(255,40,40,0.8), inset 0 0 90px rgba(200,255,77,0.18)} }
+    .copy-btn { background: rgba(169,134,63,0.16); border: 1px solid var(--rot-gold); color: var(--rot-gold-light); padding: 10px 20px; border-radius: 4px 10px 4px 10px; font-size: 14px; cursor: pointer; font-family: 'Special Elite', monospace; }
+    .writing-overlay, .modal-overlay { position: fixed; inset: 0; background: rgba(3,2,5,0.94); backdrop-filter: blur(12px); z-index: 100; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
+    .overlay-active { opacity: 1 !important; pointer-events: auto !important; }
+    .paper, .modal-box { position: relative; background: radial-gradient(ellipse at 15% 10%, rgba(196,23,42,0.06), transparent 40%), radial-gradient(ellipse at 85% 90%, rgba(200,255,77,0.03), transparent 45%), #15121a; border: 1px solid rgba(216,207,174,0.18); border-radius: 4px 16px 4px 16px; padding: 28px 24px; max-width: 360px; width: 95%; text-align: center; box-shadow: 0 0 60px rgba(125,15,30,0.3); }
+    .writing-input { background: rgba(0,0,0,0.55); border: 2px solid var(--blood-bright); color: #fff; padding: 14px; border-radius: 3px 10px 3px 10px; width: 100%; font-family: 'Yuji Syuku', serif; font-size: 20px; text-align: center; outline: none; margin: 16px 0; }
+    .writing-input:focus { border-color: var(--shinigami-eye); box-shadow: 0 0 15px rgba(200,255,77,0.35); }
+    .btn-modal { background: linear-gradient(135deg, var(--blood-bright), var(--blood-deep)); border: 1px solid rgba(216,207,174,0.15); color: #fff; padding: 14px 32px; border-radius: 4px 12px 4px 12px; font-weight: 700; font-family: 'Cinzel', serif; cursor: pointer; box-shadow: 0 4px 15px rgba(125,15,30,0.45); }
+    .tutorial-step { background: var(--panel); backdrop-filter: var(--glass); border: 1px solid rgba(216,207,174,0.08); border-radius: 3px 14px 3px 14px; padding: 20px; margin-bottom: 12px; }
+    .tutorial-step h3 { font-family: 'Cinzel', serif; margin-bottom: 10px; color: var(--rot-gold-light); font-size: 18px; }
+    .tutorial-step p { font-size: 14px; line-height: 1.6; color: var(--ash); }
+    .large-input { width: 100%; padding: 14px; background: #000; border: 1px solid var(--ash); color: #fff; border-radius: 8px; margin: 10px 0; font-size: 16px; }
+    .notification-bar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+      background: linear-gradient(135deg, #1a0a0e, #2c1017);
+      color: var(--rot-gold-light); text-align: center; padding: 12px;
+      font-family: 'Cinzel', serif; font-weight: 700; font-size: 14px;
+      transform: translateY(-100%); transition: transform 0.5s ease;
+      box-shadow: 0 2px 20px rgba(0,0,0,0.8);
+    }
+    .notification-bar.show { transform: translateY(0); }
+    .target-card { padding: 20px !important; margin-bottom: 14px !important; }
+    .target-card .target-name { font-size: 20px !important; font-weight: 700 !important; margin: 6px 0 !important; }
+    .target-card .target-stats { font-size: 14px !important; }
+    @keyframes fallIn {
+      0% { transform: translateY(-120vh) rotate(-35deg); opacity: 0; }
+      60% { transform: translateY(5px) rotate(3deg); opacity: 1; }
+      80% { transform: translateY(-15px) rotate(-2deg); }
+      100% { transform: translateY(0) rotate(-1deg); }
+    }
+    /* Animação do botão de oferta */
+    @keyframes pulseOffer {
+      0% { box-shadow: 0 0 10px #c4172a; transform: scale(1); }
+      50% { box-shadow: 0 0 25px #c4172a, 0 0 40px rgba(196,23,42,0.6); transform: scale(1.03); }
+      100% { box-shadow: 0 0 10px #c4172a; transform: scale(1); }
+    }
+    .btn-offer {
+      animation: pulseOffer 1.8s ease-in-out infinite;
+      background: linear-gradient(135deg, #8b0000, #c4172a 55%, #8b0000);
+      border: 2px solid #ff4d4d;
+      color: #fff;
+      font-family: 'Cinzel', serif;
+      font-weight: 900;
+      letter-spacing: 2px;
+    }
+  </style>
+</head>
+<body>
+<canvas id="particleCanvas"></canvas>
+<div class="bg-layer"></div>
+<div class="film-grain"></div>
+<div class="shinigami-layer" aria-hidden="true">
+  <svg class="shinigami-figure" viewBox="0 0 400 380" preserveAspectRatio="xMidYMin meet">
+    <defs><radialGradient id="wingFade" cx="50%" cy="20%" r="80%"><stop offset="0%" stop-color="#000" stop-opacity="0.55"/><stop offset="100%" stop-color="#000" stop-opacity="0"/></radialGradient></defs>
+    <path class="shinigami-wing" d="M200,40 C120,30 40,80 10,170 C60,150 120,150 165,190 C150,120 165,70 200,40 Z" fill="url(#wingFade)"/>
+    <path class="shinigami-wing" d="M200,40 C280,30 360,80 390,170 C340,150 280,150 235,190 C250,120 235,70 200,40 Z" fill="url(#wingFade)"/>
+    <path d="M200,55 C165,55 140,90 138,135 C136,175 150,205 165,225 L155,260 C150,275 155,290 170,295 L230,295 C245,290 250,275 245,260 L235,225 C250,205 264,175 262,135 C260,90 235,55 200,55 Z" fill="#000" opacity="0.5"/>
+    <ellipse class="shinigami-eye-glow left" cx="182" cy="128" rx="7" ry="10"/>
+    <ellipse class="shinigami-eye-glow right" cx="218" cy="128" rx="7" ry="10"/>
+  </svg>
+</div>
+<div class="vignette"></div>
+<div class="notification-bar" id="notificationBar"></div>
+
+<div class="app-root" id="appRoot">
+  <div id="screen-intro" class="screen active">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;width:100%;">
+      <div style="width:92px;height:124px;position:relative;animation:fallIn 1.3s cubic-bezier(0.5,0,0.75,0.4) 0.1s both;filter:drop-shadow(0 22px 32px rgba(0,0,0,0.85));">
+        <div style="width:100%;height:100%;background:linear-gradient(160deg,#1c1a22,#0c0a10 45%,#030204);border-radius:1px 7px 7px 1px;position:relative;box-shadow:inset 4px 0 0 rgba(0,0,0,0.65),inset 0 0 20px rgba(0,0,0,0.5),0 0 0 1px rgba(216,207,174,0.07),0 0 22px rgba(196,23,42,0.18);">
+          <div style="position:absolute;left:0;top:0;bottom:0;width:9px;background:linear-gradient(180deg,var(--blood),var(--blood-bright),var(--blood));border-radius:1px 0 0 1px;box-shadow:0 0 12px rgba(196,23,42,0.5);"></div>
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'UnifrakturMaguntia',cursive;font-size:13px;color:rgba(216,207,174,0.4);letter-spacing:2px;padding-left:11px;text-align:center;line-height:1.25;">DEATH<br>NOTE</div>
+        </div>
+      </div>
+      <div style="font-family:'UnifrakturMaguntia',cursive;font-size:clamp(40px,10vw,52px);color:var(--bone);text-shadow:0 0 25px rgba(125,15,30,0.75),0 0 60px rgba(125,15,30,0.3),0 0 4px rgba(200,255,77,0.2);letter-spacing:4px;margin-top:12px;text-align:center;">Death Note</div>
+      <div style="font-family:'Special Elite',monospace;font-size:11px;letter-spacing:5px;text-transform:uppercase;color:var(--bone-dim);margin-top:8px;">O caderno escolheu você</div>
+      <div style="width:140px;height:1px;background:linear-gradient(90deg,transparent,var(--blood-bright),transparent);margin:18px 0;position:relative;"><span style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:11px;color:var(--blood-bright);background:var(--abyss);padding:0 8px;">死</span></div>
+      <div style="font-family:'Yuji Syuku',serif;font-size:14px;color:var(--ash);max-width:280px;line-height:1.75;">"O nome escrito neste caderno terá seu coração parado em 40 segundos."</div>
+      <button onclick="setScreen('tutorial')" style="margin-top:22px;padding:14px 42px;background:transparent;border:1px solid var(--blood-bright);border-radius:2px 10px 2px 10px;color:var(--bone);font-family:'Special Elite',monospace;font-size:14px;letter-spacing:3px;text-transform:uppercase;cursor:pointer;">Abrir o Caderno</button>
+    </div>
+  </div>
+
+  <div id="screen-tutorial" class="screen">
+    <div class="app-header"><button class="back-btn" onclick="setScreen('intro')">←</button><div class="logo">Death Note</div></div>
+    <div class="tutorial-step"><h3>📓 1. Seu Caderno</h3><p>Você começa com um caderno comum gratuito que dura 90 dias. Ele tem 1 página por dia e cada acerto paga 0.03 TON. Após acumular 2 TON, ele se extingue. Para continuar lucrando, adquira cadernos melhores no Portal ou na Loja.</p></div>
+    <div class="tutorial-step"><h3>✍️ 2. Escrevendo Nomes</h3><p>Escolha um alvo da lista, digite o nome completo corretamente e pressione Enter. Se errar ou desistir, perderá 1 página. Páginas recarregam diariamente. Cadernos raros dão multiplicadores de recompensa.</p></div>
+    <div class="tutorial-step"><h3>🔥 3. Nível Kira</h3><p>Cada execução bem‑sucedida concede experiência. Acumule pontos para subir de nível (máx. 20). Cada nível concede +0,5% de chance de acerto. Falhas consecutivas reduzem o progresso.</p></div>
+    <div class="tutorial-step"><h3>🎁 4. Presente Diário</h3><p>Jogadores gratuitos recebem um "bilhete do Shinigami" que reduz 2% de suspeita. Jogadores com cadernos pagos ganham 0.01 TON por dia, com bônus a cada 7 e 30 dias consecutivos.</p></div>
+    <div class="tutorial-step"><h3>🕵️ 5. Suspeita e Prisão</h3><p>Cada execução aumenta a suspeita de L em 2% (comum) ou 5% (outros). Se atingir 100%, você será preso por 1 a 3 dias, ficando impossibilitado de escrever nomes e recarregar páginas.</p></div>
+    <div class="tutorial-step"><h3>🎒 6. Inventário</h3><p>Você possui 5 slots para cadernos. Compre expansões na Loja (5 TON por +5 slots). Gerencie bem seus cadernos, pois eles expiram com o tempo.</p></div>
+    <button class="btn-modal" style="width:100%;margin-top:10px;" onclick="setScreen('dashboard')">Entendi</button>
+  </div>
+
+  <div id="screen-dashboard" class="screen"><div class="app-header"><div class="logo">Death Note</div></div><div id="dashboardContent"></div></div>
+  <div id="screen-targets" class="screen"><div class="app-header"><div class="logo">Alvos</div></div><div id="targetsContent"></div></div>
+  <div id="screen-gacha" class="screen"><div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Portal</div></div><div id="gachaContent"></div></div>
+  <div id="screen-shop" class="screen"><div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Loja</div></div><div id="shopContent"></div></div>
+  <div id="screen-inventory" class="screen"><div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Inventário</div></div><div id="inventoryContent"></div></div>
+  <div id="screen-deposit" class="screen"><div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Depósito</div></div><div id="depositContent"></div></div>
+  <div id="screen-withdraw" class="screen"><div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Saque</div></div><div id="withdrawContent"></div></div>
+  <div id="screen-profile" class="screen"><div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Perfil</div></div><div id="profileContent"></div></div>
+  <div id="screen-history" class="screen"><div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Histórico</div></div><div id="historyContent"></div></div>
+</div>
+
+<div class="writing-overlay" id="writingOverlay"><div class="paper" id="writingPaper"></div></div>
+<div class="modal-overlay" id="modalOverlay"><div class="modal-box" id="modalBox"></div></div>
+
+<script>
+const canvas=document.getElementById('particleCanvas'),ctx=canvas.getContext('2d');
+let w,h,mx=-1000,my=-1000;
+const particles=[],kanji=['死','神','帳','殺','罰','命','裁','滅'];
+function resize(){w=window.innerWidth;h=window.innerHeight;canvas.width=w;canvas.height=h}
+window.addEventListener('resize',resize);resize();
+window.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY});
+window.addEventListener('touchmove',e=>{if(e.touches[0]){mx=e.touches[0].clientX;my=e.touches[0].clientY}},{passive:true});
+class Particle{constructor(){this.x=Math.random()*w;this.y=Math.random()*h;this.size=Math.random()*2.5+1;this.speed=Math.random()*0.5+0.2;this.opacity=Math.random()*0.3+0.1;this.type=Math.random()<0.3?'kanji':'dot';this.kanji=kanji[Math.floor(Math.random()*kanji.length)];this.rotation=Math.random()*Math.PI*2;this.rotSpeed=(Math.random()-0.5)*0.02;}update(){this.y-=this.speed;if(this.y<-20){this.y=h+20;this.x=Math.random()*w;}const dx=this.x-mx,dy=this.y-my,dist=Math.sqrt(dx*dx+dy*dy);if(dist<120&&mx>0){this.x+=(dx/dist)*0.6;this.y+=(dy/dist)*0.6;}this.rotation+=this.rotSpeed;}draw(ctx){ctx.save();ctx.translate(this.x,this.y);ctx.rotate(this.rotation);if(this.type==='kanji'){ctx.font=`${this.size*8}px "Zen Kaku Gothic New"`;ctx.fillStyle=`rgba(220,40,40,${0.5+this.size/10})`;ctx.shadowColor='rgba(255,0,0,0.6)';ctx.shadowBlur=6;ctx.fillText(this.kanji,0,0);}else{ctx.beginPath();ctx.arc(0,0,this.size,0,Math.PI*2);ctx.fillStyle=`rgba(230,223,197,${this.opacity})`;ctx.fill();}ctx.restore();}}
+for(let i=0;i<45;i++)particles.push(new Particle());
+function anim(){ctx.clearRect(0,0,w,h);particles.forEach(p=>{p.update();p.draw(ctx);});requestAnimationFrame(anim);}
+anim();
+
+const STORAGE_KEY='dn_pte_final6';
+const WALLET_ADDRESS='UQCA7IxtVOJ-YQhpOv_y8bVPAG5S7Fb0eFH8Mwre5dt_IHML';
+const MAX_SLOTS=5;
+
+const defaultState=()=>({
+  gram:0, suspicion:20, eyes:false, eyesLeft:0,
+  plays:0, wins:0, losses:0,
+  inventory:[
+    {id:'free', name:'Caderno de Sidoh', rarity:'common', pages:1, maxPages:1, mult:1.0, dur:90, active:true, isFree:true, totalEarned:0, createdAt:Date.now(), lastPageRefill:0}
+  ],
+  slots:MAX_SLOTS,
+  currentTargets:[], targetIndex:null, history:[],
+  gachaEpicPity:0, kiraXP:0, failStreak:0,
+  dailyClaimed:false, dailyStreak:0, lastDaily:0,
+  prisonDays:0, lastSuspicionUpdate:0,
+  hasStarterPack:false
+});
+
+let S=defaultState();
+function loadState(){
+  try{
+    const raw=localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const parsed=JSON.parse(raw);
+      S={...defaultState(),...parsed};
+      if(!S.inventory||S.inventory.length===0) S.inventory=[defaultState().inventory[0]];
+    }
+  }catch(e){}
+  const now=Date.now();
+  S.inventory=S.inventory.filter(nb=>{
+    if(nb.isFree) return true;
+    return (now-nb.createdAt) < nb.dur*86400000;
+  });
+  if(S.inventory.length===0) S.inventory=[defaultState().inventory[0]];
+  if(!S.inventory.some(n=>n.active)) S.inventory[0].active=true;
+  S.inventory.forEach(nb=>{
+    if(!nb.lastPageRefill) nb.lastPageRefill=now;
+    if(now-nb.lastPageRefill>=86400000 && S.prisonDays<=0){
+      nb.pages=nb.maxPages;
+      nb.lastPageRefill=now;
+    }
+  });
+  if(S.prisonDays>0){
+    if(!S.lastSuspicionUpdate) S.lastSuspicionUpdate=now;
+    if(now-S.lastSuspicionUpdate>=86400000){
+      S.prisonDays--;
+      S.suspicion=Math.max(0,S.suspicion-30);
+      S.lastSuspicionUpdate=now;
+      if(S.prisonDays<=0){S.prisonDays=0;S.suspicion=0;}
+    }
+  }
+  saveState();
+}
+function saveState(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(S));}catch(e){}}
+loadState();
+
+const activeNb=()=>S.inventory.find(n=>n.active)||S.inventory[0];
+const rarityTier=r=>({common:1,uncommon:2,rare:3,epic:4,legendary:5}[r]||0);
+
+const targetsPool=[
+  {name:'Taro Yamada',rarity:'common',baseChance:80,reward:0.03},
+  {name:'Kurou Otoharada',rarity:'common',baseChance:80,reward:0.03},
+  {name:'Takuo Shibuimaru',rarity:'common',baseChance:78,reward:0.03},
+  {name:'Hitoshi Demegawa',rarity:'uncommon',baseChance:70,reward:0.05},
+  {name:'Kyosuke Higuchi',rarity:'uncommon',baseChance:68,reward:0.05},
+  {name:'Raye Penber',rarity:'rare',baseChance:60,reward:0.12},
+  {name:'Mello',rarity:'rare',baseChance:58,reward:0.12},
+  {name:'Teru Mikami',rarity:'rare',baseChance:56,reward:0.12},
+  {name:'Near',rarity:'epic',baseChance:50,reward:0.30},
+  {name:'Misa Amane',rarity:'epic',baseChance:48,reward:0.30},
+  {name:'L Lawliet',rarity:'legendary',baseChance:40,reward:0.70},
+  {name:'Light Yagami',rarity:'legendary',baseChance:38,reward:0.70}
+];
+
+const shopItems=[
+  {id:'starter_pack', icon:'🎁', name:'Pacote Kira Iniciante', desc:'1x Caderno Incomum + Olhos + Máscara (limitado 1x)', price:8.0},
+  {id:'disguise',icon:'🎭',name:'Máscara de Kira',desc:'Reduz 30 de suspeita.',price:1.5},
+  {id:'eyes',icon:'👁️',name:'Olhos de Shinigami (5 usos)',desc:'+15% chance por 5 tentativas.',price:5.0},
+  {id:'expand',icon:'📦',name:'Expansão de Inventário',desc:'+5 slots para cadernos.',price:5.0}
+];
+
+function pickTargets(){
+  const allowedMap={common:['common'],uncommon:['common','uncommon'],rare:['common','uncommon','rare'],epic:['common','uncommon','rare','epic'],legendary:['common','uncommon','rare','epic','legendary']};
+  const allowed=allowedMap[activeNb().rarity]||['common'];
+  const pool=targetsPool.filter(t=>allowed.includes(t.rarity));
+  const sel=[];
+  while(sel.length<3&&pool.length>0){const t=pool[Math.floor(Math.random()*pool.length)];if(!sel.find(s=>s.name===t.name))sel.push(t);}
+  S.currentTargets=sel;
+}
+
+function calcChance(nbR,tR,eyes){
+  const t=targetsPool.find(x=>x.rarity===tR);
+  if(!t)return 0;
+  const diff=rarityTier(nbR)-rarityTier(tR);
+  let mod=diff>=3?1.3:diff===2?1.15:diff===1?1.05:diff===0?1.0:0.8;
+  let c=t.baseChance*mod;
+  if(eyes)c+=15;
+  c+=Math.floor(S.kiraXP/5)*0.5;
+  return Math.min(100,Math.max(0,Math.round(c)));
+}
+function updateKiraXP(success){
+  if(success){S.kiraXP=Math.min(100,S.kiraXP+1);S.failStreak=0;}
+  else{S.failStreak++;if(S.failStreak>=3){S.kiraXP=Math.max(0,S.kiraXP-5);S.failStreak=0;}}
+}
+function handlePrison(){
+  if(S.suspicion>=100 && S.prisonDays<=0){
+    S.prisonDays=Math.floor(Math.random()*3)+1;
+    S.suspicion=0;
+    S.lastSuspicionUpdate=Date.now();
+    showModal('🕵️',`L prendeu você por ${S.prisonDays} dia(s)! Sem páginas e sem execuções.`);
+  }
+}
+function showNotification(msg){
+  const bar=document.getElementById('notificationBar');
+  bar.textContent=msg;
+  bar.classList.add('show');
+  clearTimeout(bar._timeout);
+  bar._timeout=setTimeout(()=>bar.classList.remove('show'),5000);
+}
+function getTitle(kiraXP){
+  const level=Math.floor(kiraXP/5);
+  if(level>=20)return 'Shinigami Supremo';
+  if(level>=15)return 'Deus da Morte';
+  if(level>=10)return 'Kira Respeitado';
+  if(level>=5)return 'Justiceiro das Sombras';
+  return 'Aspirante a Kira';
+}
+
+function setScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  updateScreenContent(id);
+}
+function updateScreenContent(id){
+  const fn={
+    dashboard:renderDashboard,targets:renderTargets,gacha:renderGacha,shop:renderShop,
+    inventory:renderInventory,deposit:renderDeposit,withdraw:renderWithdraw,profile:renderProfile,history:renderHistory
+  };
+  if(fn[id])fn[id]();
+}
+
+function buyStarterPack(){
+  if(S.hasStarterPack){showModal('❌','Pacote já adquirido.');return;}
+  if(S.gram<8){showModal('❌','Saldo insuficiente (8 TON).');return}
+  if(S.inventory.length+1>S.slots){showModal('❌','Inventário cheio! Libere espaço.');return;}
+  S.gram-=8;
+  S.hasStarterPack=true;
+  S.inventory.push({id:'nb_starter_'+Date.now(),name:'Caderno de Misa',rarity:'uncommon',pages:2,maxPages:2,mult:1.2,dur:60,active:false,isFree:false,createdAt:Date.now(),lastPageRefill:Date.now()});
+  S.eyes=true;S.eyesLeft=5;
+  S.suspicion=Math.max(0,S.suspicion-30);
+  showNotification('🎁 Pacote Kira Iniciante adquirido!');
+  showModal('✅','Pacote Kira Iniciante comprado com sucesso!');
+  saveState();
+  setScreen('dashboard');
+}
+
+function renderDashboard(){
+  const nb=activeNb();
+  const kiraLevel=Math.floor(S.kiraXP/5);
+  const title=getTitle(S.kiraXP);
+  const prisonMsg=S.prisonDays>0?`<div class="glass-card" style="background:rgba(180,0,0,0.3);text-align:center;">🔒 Preso por ${S.prisonDays} dia(s). Sem páginas e execuções.</div>`:'';
+  const offerBtn = (!S.hasStarterPack)
+    ? `<button class="btn-game btn-offer" style="grid-column:1/-1;min-height:70px;margin-bottom:12px;font-size:16px;" onclick="buyStarterPack()">🔥 Oferta Limitada — Pacote Kira Iniciante (8 TON)</button>`
+    : '';
+  document.getElementById('dashboardContent').innerHTML=`
+    ${offerBtn}
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;width:100%;margin-bottom:8px;">
+      <div class="glass-card" style="text-align:center;padding:12px 6px;"><span style="color:#c9a03a;font-size:clamp(16px,4vw,22px);">${S.gram.toFixed(2)}</span><br><small>🍎 TON</small></div>
+      <div class="glass-card" style="text-align:center;padding:12px 6px;"><span style="color:#8a9bb5;font-size:clamp(16px,4vw,22px);">${nb.pages}/${nb.maxPages}</span><br><small>📄 Páginas</small></div>
+      <div class="glass-card" style="text-align:center;padding:12px 6px;background:rgba(180,20,20,0.2);"><span style="color:#e07070;font-size:clamp(16px,4vw,22px);">${S.suspicion}%</span><br><small>🕵️ Suspeita</small></div>
+    </div>
+    ${prisonMsg}
+    <div style="font-size:14px;color:var(--ash);margin:8px 0;background:rgba(255,255,255,0.05);padding:8px;border-radius:4px;">
+      🎭 <b style="color:var(--rot-gold-light);">${title}</b> — Level Kira: ${kiraLevel} <small style="color:var(--blood-bright);">(+${(kiraLevel*0.5).toFixed(1)}% chance)</small>
+    </div>
+    ${nb.isFree?`<div class="glass-card" style="text-align:center;padding:8px;margin-bottom:8px;"><small>⏳ Limite vitalício: ${nb.totalEarned.toFixed(2)}/2.00 🍎</small></div>`:''}
+    <div style="font-size:15px;color:var(--ash);width:100%;margin-bottom:4px;background:rgba(255,255,255,0.05);padding:6px;border-radius:4px;">
+      👁️ Atenção de L: <b style="color:#e07070;">${S.suspicion}%</b>
+    </div>
+    <div class="suspicion-bar"><div class="suspicion-fill" style="width:${S.suspicion}%"></div></div>
+    <div class="btn-grid">
+      <button class="btn-game btn-main" onclick="openTargets()" ${S.prisonDays>0?'disabled':''}>✍️ Escrever um Nome</button>
+      <button class="btn-game" onclick="setScreen('gacha')">🌀 Portal</button>
+      <button class="btn-game" onclick="setScreen('shop')">🛒 Loja</button>
+      <button class="btn-game" onclick="setScreen('inventory')">🎒 Inventário</button>
+      <button class="btn-game" onclick="setScreen('deposit')">📥 Depósito</button>
+      <button class="btn-game" onclick="setScreen('withdraw')">📤 Saque</button>
+      <button class="btn-game" onclick="setScreen('profile')">🎭 Perfil</button>
+      <button class="btn-game" onclick="setScreen('history')">📜 Histórico</button>
+      <button class="btn-game" onclick="claimDaily()">🎁 Diário</button>
+    </div>`;
+}
+
+function renderTargets(){
+  const nb=activeNb();
+  document.getElementById('targetsContent').innerHTML=`
+    <div style="font-family:'Yuji Syuku';font-size:18px;margin:12px 0;">Escolha um alvo:</div>
+    ${S.currentTargets.map((t,i)=>{
+      const ch=calcChance(nb.rarity,t.rarity,S.eyes);
+      const rawReward=t.reward*nb.mult;
+      return `<div class="glass-card target-card" style="cursor:pointer;" onclick="startWriting(${i})">
+        <span class="rarity-badge rarity-${t.rarity}">${t.rarity}</span>
+        <div class="target-name">${t.name}</div>
+        <div class="target-stats" style="display:flex;justify-content:space-between;color:var(--ash);"><span>🎯 ${ch}%</span><span>🍎 ${rawReward.toFixed(2)} TON</span></div>
+      </div>`;
+    }).join('')}
+    <div style="margin-top:20px;text-align:center;">
+      <button class="btn-game" style="background:rgba(180,40,40,0.3);border-color:var(--blood-bright);width:100%;" onclick="desistirAlvos()">Desistir (-1 página)</button>
+    </div>`;
+}
+
+function desistirAlvos(){
+  const nb=activeNb();
+  nb.pages=Math.max(0,nb.pages-1);
+  saveState();
+  showModal('📄','Você desistiu e perdeu 1 página.');
+  setScreen('dashboard');
+}
+
+function startWriting(idx){
+  if(S.prisonDays>0){showModal('🔒','Você está preso! Aguarde.');return;}
+  S.targetIndex=idx;
+  const t=S.currentTargets[idx];
+  document.getElementById('writingPaper').innerHTML=`
+    <div style="font-family:'Yuji Syuku';font-size:18px;color:var(--bone);margin-bottom:8px;">Alvo: <span style="color:var(--blood-bright);">${t.name}</span></div>
+    <div class="pen-line" id="penLine"></div>
+    <div class="death-sequence" id="deathSequence"></div>
+    <div class="result-text" id="resultText"></div>
+    <input class="writing-input" id="nameInput" placeholder="Digite o nome completo..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    <div style="margin-top:8px;font-size:11px;color:var(--ash);">Pressione Enter para enviar</div>`;
+  document.getElementById('writingOverlay').classList.add('overlay-active');
+  document.body.classList.add('writing-active');
+  setTimeout(()=>document.getElementById('nameInput').focus(),300);
+  document.getElementById('nameInput').addEventListener('keydown',function(e){
+    if(e.key==='Enter'){
+      const name=this.value.trim();
+      if(name.toLowerCase()===t.name.toLowerCase()){
+        this.disabled=true;
+        document.getElementById('writingPaper').removeChild(this);
+        executePlay();
+      }else{
+        const nb=activeNb();
+        nb.pages=Math.max(0,nb.pages-1);
+        showModal('❌','Nome incorreto! Você perdeu 1 página.');
+        document.getElementById('writingOverlay').classList.remove('overlay-active');
+        document.body.classList.remove('writing-active');
+        saveState();
+        setScreen('dashboard');
+      }
+    }
+  });
+}
+
+async function executePlay(){
+  const t=S.currentTargets[S.targetIndex],nb=activeNb();
+  if(nb.pages<=0){showModal('📄','Sem páginas!');return;}
+  nb.pages--;
+  const success=Math.random()*100<calcChance(nb.rarity,t.rarity,S.eyes);
+  const pen=document.getElementById('penLine'),deathSeq=document.getElementById('deathSequence'),result=document.getElementById('resultText');
+  pen.textContent='';deathSeq.textContent='';deathSeq.style.opacity='0';result.textContent='';result.classList.remove('show');
+  const txt1=`Escrevendo "${t.name}"...`;
+  for(let i=0;i<txt1.length;i++){pen.textContent+=txt1[i];await new Promise(r=>setTimeout(r,55));}
+  await new Promise(r=>setTimeout(r,400));
+  deathSeq.textContent='40 segundos se passaram...';deathSeq.style.opacity='1';
+  await new Promise(r=>setTimeout(r,1200));
+  if(success){
+    deathSeq.textContent=`O coração de ${t.name} parou.`;
+    await new Promise(r=>setTimeout(r,1500));
+    let reward=t.reward*nb.mult;
+    if(nb.isFree){
+      const remaining=2-nb.totalEarned;
+      reward=Math.min(reward,remaining);
+      nb.totalEarned+=reward;
+    }
+    S.gram+=reward;S.wins++;updateKiraXP(true);
+    result.textContent=`+${reward.toFixed(2)} 🍎`;result.classList.add('show');
+    if(t.rarity==='legendary') showNotification(`🌟 Um Shinigami testemunhou a morte de ${t.name}!`);
+  }else{
+    deathSeq.textContent=`A vítima mentiu seu nome real... ${t.name} escapou.`;
+    await new Promise(r=>setTimeout(r,1500));
+    S.losses++;updateKiraXP(false);
+    result.textContent='Nenhuma recompensa.';result.classList.add('show');
+  }
+  S.plays++;
+  if(S.eyes){S.eyesLeft--;if(S.eyesLeft<=0)S.eyes=false;}
+  S.suspicion=Math.min(100,S.suspicion+(t.rarity==='common'?2:5));
+  S.history.push({target:t.name,rarity:t.rarity,success,reward:success?result.textContent.replace('+','').replace(' 🍎',''):'0.00'});
+  await new Promise(r=>setTimeout(r,2000));
+  handlePrison();
+  await new Promise(r=>setTimeout(r,2000));
+  document.getElementById('writingOverlay').classList.remove('overlay-active');
+  document.body.classList.remove('writing-active');
+  saveState();
+  setScreen('dashboard');
+}
+
+function renderGacha(){
+  document.getElementById('gachaContent').innerHTML=`
+    <div class="portal-container"><div class="portal-outer"><div class="portal-inner">🌀</div></div></div>
+    <div style="text-align:center;font-family:'Yuji Syuku';color:var(--gold-light);margin-bottom:8px;">Invocar Cadernos (4 TON)</div>
+    <div style="display:flex;gap:8px;width:100%;margin-bottom:8px;">
+      <div class="glass-card" style="flex:1;text-align:center;cursor:pointer;" onclick="pullGacha(1)"><b>1x</b><br>4 TON</div>
+      <div class="glass-card" style="flex:1;text-align:center;cursor:pointer;" onclick="pullGacha(10)"><b>10x</b><br>40 TON</div>
+    </div>
+    <div class="glass-card" style="font-size:11px;text-align:center;">Os deuses da morte decidem seu destino.</div>
+    <div class="glass-card" style="text-align:center;padding:14px;">
+      <b style="color:var(--gold-light);">🛍️ Comprar Caderno Específico</b>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;">
+        <div class="glass-card" style="padding:8px;text-align:center;cursor:pointer;" onclick="buyFixedNb('common')"><span class="rarity-badge rarity-common">Comum</span><br>3 TON</div>
+        <div class="glass-card" style="padding:8px;text-align:center;cursor:pointer;" onclick="buyFixedNb('uncommon')"><span class="rarity-badge rarity-uncommon">Incomum</span><br>10 TON</div>
+        <div class="glass-card" style="padding:8px;text-align:center;cursor:pointer;" onclick="buyFixedNb('rare')"><span class="rarity-badge rarity-rare">Raro</span><br>25 TON</div>
+        <div class="glass-card" style="padding:8px;text-align:center;cursor:pointer;" onclick="buyFixedNb('epic')"><span class="rarity-badge rarity-epic">Épico</span><br>50 TON</div>
+        <div class="glass-card" style="padding:8px;text-align:center;cursor:pointer;" onclick="buyFixedNb('legendary')"><span class="rarity-badge rarity-legendary">Lendário</span><br>100 TON</div>
+      </div>
+    </div>
+    <div id="gachaResult" style="margin-top:10px;width:100%;"></div>`;
+}
+
+function renderShop(){
+  document.getElementById('shopContent').innerHTML=shopItems.map(i=>{
+    const disabled=(i.id==='starter_pack'&&S.hasStarterPack)?'disabled':'';
+    const btnText=(i.id==='starter_pack'&&S.hasStarterPack)?'Adquirido':'Comprar';
+    return `<div class="glass-card" style="display:flex;align-items:center;gap:12px;">
+      <span style="font-size:28px;">${i.icon}</span>
+      <div style="flex:1;"><b>${i.name}</b><br><small style="color:var(--ash);">${i.desc}</small><br><span style="color:#c9a03a;">${i.price} TON</span></div>
+      <button class="btn-game" style="padding:8px 14px;" onclick="buyItem('${i.id}')" ${disabled}>${btnText}</button>
+    </div>`;
+  }).join('');
+}
+
+function renderInventory(){
+  document.getElementById('inventoryContent').innerHTML=`
+    <div style="font-size:13px;color:var(--ash);margin-bottom:8px;">Slots usados: ${S.inventory.length}/${S.slots}</div>
+    ${S.inventory.map(n=>{
+      const colorClass=`rarity-${n.rarity}`;
+      return `<div class="glass-card" style="display:flex;align-items:center;gap:12px;">
+        <span style="font-size:28px;">📓</span>
+        <div style="flex:1;">
+          <b class="${colorClass}" style="background:none;padding:0;border:none;">${n.name}</b>
+          <span class="rarity-badge ${colorClass}" style="margin-left:6px;">${n.rarity}</span>
+          ${n.isFree?' <small style="color:var(--ash);">(Grátis)</small>':''}<br>
+          <small style="color:var(--ash);">📄${n.pages}/${n.maxPages} p/ dia | ⏳${n.dur}d | ${n.mult}x</small>
+          ${n.totalEarned!==undefined?`<br><small style="color:var(--ash);">Ganho: ${n.totalEarned.toFixed(2)}/2.00 🍎</small>`:''}
+        </div>
+        <button class="btn-game" style="padding:8px 12px;" ${n.active?'disabled':''} onclick="activateNb('${n.id}')">${n.active?'Ativo':'Usar'}</button>
+      </div>`;
+    }).join('')}`;
+}
+
+function renderDeposit(){
+  document.getElementById('depositContent').innerHTML=`
+    <div class="glass-card" style="padding:20px;text-align:center;">
+      <p style="font-size:16px;color:var(--gold-light);">📥 Envie TON para:</p>
+      <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.1);border-radius:8px;padding:14px;margin:12px 0;word-break:break-all;font-family:monospace;font-size:15px;">${WALLET_ADDRESS}</div>
+      <button class="copy-btn" onclick="copyWallet()">📋 Copiar</button>
+      <input id="depositAmount" type="number" placeholder="Valor enviado (TON)" min="0.5" step="0.1" class="large-input">
+      <input id="depositTxid" placeholder="TXID da transação" class="large-input">
+      <button class="btn-modal" style="width:100%;margin-top:10px;" onclick="submitDeposit()">Enviar Comprovante</button>
+      <p style="font-size:12px;color:var(--ash);margin-top:10px;">O administrador creditará manualmente.</p>
+    </div>`;
+}
+
+function renderWithdraw(){
+  document.getElementById('withdrawContent').innerHTML=`
+    <div class="glass-card" style="padding:20px;text-align:center;">
+      <p style="font-size:18px;color:var(--gold-light);">📤 Saldo: <b>${S.gram.toFixed(2)} TON</b></p>
+      <p style="font-size:14px;color:var(--ash);">Taxa de 5% (inclui rede). Mínimo 1 TON.</p>
+      <input id="withdrawAddr" placeholder="Sua carteira TON" class="large-input">
+      <input id="withdrawAmount" type="number" placeholder="Valor em TON" min="1" step="0.1" class="large-input">
+      <button class="btn-modal" style="width:100%;" onclick="requestWithdraw()">Solicitar Saque</button>
+    </div>`;
+}
+
+function renderProfile(){
+  const nb=activeNb();
+  const now=Date.now();
+  const daysLeft=nb.isFree?Math.ceil((nb.createdAt+7776000000-now)/86400000):Math.ceil((nb.createdAt+nb.dur*86400000-now)/86400000);
+  const kiraLevel=Math.floor(S.kiraXP/5);
+  const title=getTitle(S.kiraXP);
+  document.getElementById('profileContent').innerHTML=`
+    <div class="glass-card" style="padding:20px;text-align:left;font-size:15px;">
+      <p style="font-size:22px;text-align:center;color:var(--rot-gold-light);margin-bottom:12px;">🎭 ${title}</p>
+      <p style="margin:8px 0;"><b>Caderno ativo:</b> ${nb.name} (${nb.rarity})</p>
+      <p style="margin:8px 0;"><b>Páginas:</b> ${nb.pages}/${nb.maxPages} por dia</p>
+      <p style="margin:8px 0;"><b>Multiplicador:</b> ${nb.mult}x</p>
+      <p style="margin:8px 0;"><b>Duração restante:</b> ${daysLeft>0?daysLeft+' dias':'Expirado'}</p>
+      <p style="margin:8px 0;"><b>Saldo:</b> ${S.gram.toFixed(2)} 🍎</p>
+      <p style="margin:8px 0;"><b>Suspeita:</b> ${S.suspicion}%</p>
+      <p style="margin:8px 0;"><b>Olhos de Shinigami:</b> ${S.eyes?S.eyesLeft+' usos':'Inativos'}</p>
+      <p style="margin:8px 0;"><b>Level Kira:</b> ${kiraLevel} (+${(kiraLevel*0.5).toFixed(1)}% chance)</p>
+      <p style="margin:8px 0;"><b>Jogadas:</b> ${S.plays} (✅${S.wins} ❌${S.losses})</p>
+      <p style="margin:8px 0;"><b>Prisão:</b> ${S.prisonDays>0?S.prisonDays+' dia(s) restantes':'Livre'}</p>
+      <p style="margin:8px 0;"><b>Inventário:</b> ${S.inventory.length}/${S.slots} slots</p>
+    </div>`;
+}
+
+function renderHistory(){
+  const el=document.getElementById('historyContent');
+  if(S.history.length===0){el.innerHTML='<div class="glass-card" style="text-align:center;color:var(--ash);">Nenhuma execução ainda.</div>';return}
+  el.innerHTML=S.history.slice().reverse().map(h=>`<div class="glass-card history-item"><span>${h.target} <span class="rarity-badge rarity-${h.rarity}">${h.rarity}</span></span><span style="color:${h.success?'#7cb87c':'#e07070'}">${h.success?'✅ +'+h.reward+' 🍎':'❌ Falhou'}</span></div>`).join('');
+}
+
+function openTargets(){
+  const nb=activeNb();
+  if(S.prisonDays>0){showModal('🔒','Você está preso!');return;}
+  if(nb.isFree&&nb.totalEarned>=2){showModal('📓','Caderno gratuito atingiu o limite de 2 TON.');return;}
+  if(nb.pages<=0){showModal('📄','Sem páginas. Aguarde a recarga diária.');return;}
+  pickTargets();
+  setScreen('targets');
+}
+
+function buyItem(id){
+  if(id==='starter_pack'){
+    buyStarterPack();
+    return;
+  }
+  const item=shopItems.find(i=>i.id===id);
+  if(!item){return;}
+  if(S.gram<item.price){showModal('❌','Saldo insuficiente.');return}
+  S.gram-=item.price;
+  if(id==='disguise')S.suspicion=Math.max(0,S.suspicion-30);
+  else if(id==='eyes'){S.eyes=true;S.eyesLeft=5;}
+  else if(id==='expand'){S.slots+=5;showNotification('📦 Inventário expandido em +5 slots!');}
+  showModal('✅',`${item.name} adquirido!`);saveState();setScreen('shop');
+}
+
+function pullGacha(q){
+  if(S.inventory.length+q>S.slots){showModal('❌','Inventário cheio! Compre expansão ou libere espaço.');return;}
+  const cost=q*4;
+  if(S.gram<cost){showModal('❌','Saldo insuficiente.');return}
+  S.gram-=cost;
+  const probs=[0.951,0.032,0.012,0.004,0.001];
+  const rarities=['common','uncommon','rare','epic','legendary'];
+  const results=[];
+  for(let i=0;i<q;i++){
+    let r='common';
+    if(S.gachaEpicPity>=49){r='epic';S.gachaEpicPity=0;}
+    else{let roll=Math.random(),cum=0;for(let j=0;j<probs.length;j++){cum+=probs[j];if(roll<cum){r=rarities[j];break}}}
+    if(r==='epic'||r==='legendary')S.gachaEpicPity=0;else S.gachaEpicPity++;
+    results.push(r);
+  }
+  const cfg={common:{pages:1,maxPages:1,mult:1.0,dur:90},uncommon:{pages:2,maxPages:2,mult:1.2,dur:60},rare:{pages:2,maxPages:2,mult:1.5,dur:75},epic:{pages:2,maxPages:2,mult:1.8,dur:90},legendary:{pages:3,maxPages:3,mult:2.2,dur:120}};
+  const names={common:['Sidoh','Gukku','Armonia','Zellogi'],uncommon:['Higuchi','Misa','Mikami','Takada'],rare:['Rem','Jealous','Daril','Kinddara'],epic:['Ryuk Negociado','Rei Shinigami','Nu','Midora'],legendary:['Ryuk Original','Primordial','Deus Shinigami']};
+  results.forEach(r=>{
+    const c=cfg[r];
+    const name=names[r][Math.floor(Math.random()*names[r].length)];
+    S.inventory.push({id:'nb_'+Date.now()+Math.random(),name:`Caderno de ${name}`,rarity:r,pages:c.pages,maxPages:c.maxPages,mult:c.mult,dur:c.dur,active:false,isFree:false,createdAt:Date.now(),lastPageRefill:Date.now()});
+  });
+  const sum=results.reduce((a,r)=>{a[r]=(a[r]||0)+1;return a},{});
+  if(sum['epic']||sum['legendary']) showNotification(`📓 Um caderno raro foi encontrado: ${Object.entries(sum).map(([r,c])=>`${c}x ${r}`).join(', ')}`);
+  showModal('🌀',`Obtido: ${Object.entries(sum).map(([r,c])=>`${c}x ${r}`).join(', ')}`);
+  document.getElementById('gachaResult').innerHTML=`<div class="glass-card" style="text-align:center;color:var(--gold-light);">Último pull: ${Object.entries(sum).map(([r,c])=>`${c}x ${r}`).join(', ')}</div>`;
+  saveState();setScreen('gacha');
+}
+
+function buyFixedNb(rarity){
+  if(S.inventory.length+1>S.slots){showModal('❌','Inventário cheio! Compre expansão ou libere espaço.');return;}
+  const prices={common:3,uncommon:10,rare:25,epic:50,legendary:100};
+  const cfg={common:{pages:1,maxPages:1,mult:1.0,dur:90},uncommon:{pages:2,maxPages:2,mult:1.2,dur:60},rare:{pages:2,maxPages:2,mult:1.5,dur:75},epic:{pages:2,maxPages:2,mult:1.8,dur:90},legendary:{pages:3,maxPages:3,mult:2.2,dur:120}};
+  const names={common:['Sidoh','Gukku'],uncommon:['Higuchi','Misa'],rare:['Rem','Jealous'],epic:['Ryuk Negociado','Rei Shinigami'],legendary:['Ryuk Original','Primordial']};
+  if(S.gram<prices[rarity]){showModal('❌','Saldo insuficiente.');return}
+  S.gram-=prices[rarity];
+  const c=cfg[rarity];
+  const name=names[rarity][Math.floor(Math.random()*names[rarity].length)];
+  S.inventory.push({id:'nb_'+Date.now(),name:`Caderno de ${name}`,rarity,pages:c.pages,maxPages:c.maxPages,mult:c.mult,dur:c.dur,active:false,isFree:false,createdAt:Date.now(),lastPageRefill:Date.now()});
+  if(rarity==='epic'||rarity==='legendary') showNotification(`📓 Um caderno ${rarity} foi adquirido: ${name}`);
+  showModal('📓','Caderno adquirido!');saveState();setScreen('gacha');
+}
+
+function activateNb(id){
+  S.inventory.forEach(n=>n.active=false);
+  const nb=S.inventory.find(n=>n.id===id);
+  if(nb)nb.active=true;
+  saveState();setScreen('inventory');
+}
+function copyWallet(){navigator.clipboard.writeText(WALLET_ADDRESS).then(()=>showModal('✅','Copiado!')).catch(()=>showModal('❌','Erro.'));}
+function submitDeposit(){
+  const amount=document.getElementById('depositAmount')?.value;
+  const txid=document.getElementById('depositTxid')?.value.trim();
+  if(!amount||!txid){showModal('❌','Preencha valor e TXID.');return}
+  showModal('📥',`Comprovante de ${amount} TON enviado.\nTXID: ${txid}\nAguardando aprovação.`);
+}
+function requestWithdraw(){
+  const addr=document.getElementById('withdrawAddr')?.value.trim();
+  const amt=parseFloat(document.getElementById('withdrawAmount')?.value);
+  if(!addr||isNaN(amt)||amt<1){showModal('❌','Dados inválidos.');return}
+  const fee=amt*0.05,total=amt+fee;
+  if(S.gram<total){showModal('❌',`Saldo insuficiente. Necessário ${total.toFixed(2)} TON.`);return}
+  S.gram-=total;
+  showModal('📤',`Saque de ${amt.toFixed(2)} TON solicitado.\nTaxa: ${fee.toFixed(2)} TON.\nProcessaremos manualmente.`);
+  saveState();setScreen('withdraw');
+}
+
+function claimDaily(){
+  const nb=activeNb();
+  const now=Date.now();
+  if(now-S.lastDaily<86400000){showModal('🎁','Já resgatou hoje.');return;}
+  if(nb.isFree){
+    S.suspicion=Math.max(0,S.suspicion-2);
+    S.lastDaily=now;
+    showModal('🎁','"Um bilhete aparece ao lado do seu caderno: L está distraído hoje..."\n-2% de suspeita.');
+  }else{
+    S.gram+=0.01;
+    if(now-S.lastDaily<172800000)S.dailyStreak++;else S.dailyStreak=1;
+    if(S.dailyStreak%7===0)S.gram+=0.05;
+    else if(S.dailyStreak%30===0)S.gram+=0.20;
+    S.lastDaily=now;
+    showModal('🎁','+0,01 🍎 diário!');
+  }
+  saveState();setScreen('dashboard');
+}
+
+function showModal(icon,msg){
+  document.getElementById('modalBox').innerHTML=`<div style="font-size:40px;">${icon}</div><p style="line-height:1.5;font-size:16px;">${msg}</p><button class="btn-modal" onclick="document.getElementById('modalOverlay').classList.remove('overlay-active')">OK</button>`;
+  document.getElementById('modalOverlay').classList.add('overlay-active');
+}
+
+window.onload=()=>{
+  setScreen('intro');
+  document.getElementById('modalOverlay').addEventListener('click',e=>{if(e.target===e.currentTarget)e.currentTarget.classList.remove('overlay-active');});
+};
+</script>
+</body>
+</html>

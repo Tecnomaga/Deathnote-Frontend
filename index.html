@@ -8,7 +8,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=UnifrakturMaguntia&family=Cinzel:wght@400;600;700;900&family=Zen+Kaku+Gothic+New:wght@300;400;500;700;900&family=Yuji+Syuku&family=Special+Elite&display=swap" rel="stylesheet">
   <style>
-    /* (mesmo CSS da versão anterior, sem alterações) */
     :root {
       --abyss: #050507;
       --panel: rgba(15, 13, 18, 0.72);
@@ -391,7 +390,6 @@ async function refreshUser() {
   } catch(e) {}
 }
 
-// ✅ Cotação BRL em tempo real (igual Gram Catcher)
 async function updateGramPrice() {
   try {
     const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=brl');
@@ -399,9 +397,7 @@ async function updateGramPrice() {
     if (data && data['the-open-network'] && data['the-open-network'].brl > 0) {
       gramPriceBRL = data['the-open-network'].brl;
     }
-  } catch(e) {
-    // mantém último valor
-  }
+  } catch(e) {}
 }
 
 function formatGram(amount) {
@@ -519,7 +515,7 @@ function renderTutorial() {
     <button class="btn-modal" style="width:100%;margin-top:10px;" onclick="setScreen('dashboard')">Entendi</button>`;
 }
 
-// --- DASHBOARD ---
+// --- DASHBOARD (com lógica de banners) ---
 async function renderDashboard() {
   await updateGramPrice();
   await refreshUser();
@@ -528,9 +524,14 @@ async function renderDashboard() {
   const kiraLevel = Math.floor((userData.kiraXP || 0) / 5);
   const title = getTitle(userData.kiraXP);
   const prisonMsg = userData.prisonDays > 0 ? `<div class="glass-card" style="background:rgba(180,0,0,0.3);text-align:center;">🔒 Preso por ${userData.prisonDays} dia(s).</div>` : '';
-  const offerBtn = (!userData.hasStarterPack)
-    ? `<button class="btn-game btn-offer" style="grid-column:1/-1;min-height:65px;margin-bottom:10px;font-size:16px;" onclick="buyStarterPack()">🔥 Oferta Limitada — Pacote Kira Iniciante (8 🍎 GRAM) -51%</button>`
-    : '';
+  
+  // Lógica de banners
+  let offerBtn = '';
+  if (!userData.hasSurvivalKit) {
+    offerBtn = `<button class="btn-game btn-offer" style="grid-column:1/-1;min-height:70px;margin-bottom:10px;font-size:16px;" onclick="buySurvivalKit()">⚡ Kit de Sobrevivência — 3 🍎 GRAM (≈ R$ ${gramPriceBRL ? (3*gramPriceBRL).toFixed(2) : '--'})</button>`;
+  } else if (!userData.hasStarterPack) {
+    offerBtn = `<button class="btn-game btn-offer" style="grid-column:1/-1;min-height:70px;margin-bottom:10px;font-size:16px;" onclick="buyStarterPack()">🔥 Pacote Kira Iniciante — 8 🍎 GRAM (-51%)</button>`;
+  }
 
   document.getElementById('screen-dashboard').innerHTML = `
     <div class="app-header"><div class="logo">Death Note</div></div>
@@ -742,15 +743,60 @@ const shopItems=[
 function renderShop() {
   const starterDisabled=userData?.hasStarterPack?'disabled':'';
   const starterText=userData?.hasStarterPack?'Adquirido':'Comprar';
+  const survivalDisabled=userData?.hasSurvivalKit?'disabled':'';
+  const survivalText=userData?.hasSurvivalKit?'Adquirido':'Comprar';
+
   document.getElementById('screen-shop').innerHTML = `
     <div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Loja</div></div>
     <div class="price-info">🍎 1 Maçã = 1 GRAM ≈ ${formatBRL(1)}</div>
+
+    <!-- Card do Kit de Sobrevivência (destaque) -->
+    <div class="glass-card" style="border:2px solid var(--rot-gold);">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="font-size:26px;">⚡</span>
+        <span class="rarity-badge rarity-legendary">-29% OFF</span>
+      </div>
+      <b style="font-size:18px;">Kit de Sobrevivência do Kira</b>
+      <div style="font-size:14px;color:var(--ash);margin:8px 0;">
+        📓 Caderno Comum (60 dias)<br>
+        <small>• 2 páginas/dia nos 30 primeiros</small><br>
+        <small>• 1 página/dia nos 30 restantes</small><br>
+        🎭 Máscara de Kira (-30 suspeita)<br>
+        👁️ Olho de Shinigami (1 uso)
+      </div>
+      <span style="color:#c9a03a;font-size:18px;">3 🍎 GRAM</span>
+      <button class="btn-game btn-main" style="margin-top:8px;" onclick="buySurvivalKit()" ${survivalDisabled}>${survivalText}</button>
+    </div>
+
     ${shopItems.map(i=>`
       <div class="glass-card" style="display:flex;align-items:center;gap:10px;">
         <span style="font-size:26px;">${i.icon}</span>
         <div style="flex:1;"><b>${i.name}</b><br><small style="color:var(--ash);font-size:13px;">${i.desc}</small><br><span style="color:#c9a03a;font-size:15px;">${i.price} 🍎 GRAM</span></div>
         <button class="btn-game" style="padding:8px 14px;" onclick="buyItem('${i.id}')" ${i.id==='starter_pack'?starterDisabled:''}>${i.id==='starter_pack'?starterText:'Comprar'}</button>
       </div>`).join('')}`;
+}
+
+async function buySurvivalKit() {
+  if(!userData)return;
+  if(userData.hasSurvivalKit) { showModal('❌','Kit já adquirido.'); return; }
+  if(userData.balance < 3) { showModal('❌','Saldo insuficiente (3 🍎 GRAM).'); return; }
+  if(userData.inventory.length + 1 > userData.slots) { showModal('📦','Sem espaço! Expanda seu inventário na Loja.'); return; }
+  confirmAction('Comprar Kit de Sobrevivência', `
+    ⚡ Kit de Sobrevivência do Kira<br>
+    📓 Caderno Comum (60 dias)<br>
+    • 2 páginas/dia (primeiros 30)<br>
+    • 1 página/dia (últimos 30)<br>
+    🎭 Máscara de Kira (-30 suspeita)<br>
+    👁️ Olho de Shinigami (1 uso)<br>
+    Valor real: 4,25 🍎 GRAM<br>
+    <b>Preço: 3 🍎 GRAM</b>`, async () => {
+    try {
+      const res = await apiCall('/user/buy-survival-kit', 'POST');
+      userData = res.user;
+      showModal('✅', 'Kit de Sobrevivência ativado!');
+      setScreen('dashboard');
+    } catch(e) { showModal('❌', e.message); }
+  });
 }
 
 function buyStarterPack(){buyItem('starter_pack');}
@@ -783,7 +829,8 @@ function renderInventory() {
         <div style="flex:1;">
           <b class="text-${n.rarity}">${n.name}</b>
           <span class="rarity-badge rarity-${n.rarity}" style="margin-left:4px;">${n.rarity}</span>
-          ${n.isFree?' <small style="color:var(--ash);">(Grátis)</small>':''}<br>
+          ${n.isFree?' <small style="color:var(--ash);">(Grátis)</small>':''}
+          ${n.isSurvival?' <small style="color:var(--rot-gold-light);">(Sobrevivência)</small>':''}<br>
           <small style="color:var(--ash);font-size:13px;">📄${n.pages}/${n.maxPages} p/ dia | ⏳${n.dur}d | ${n.mult}x</small>
         </div>
         <button class="btn-game" style="padding:6px 10px;" ${n.active?'disabled':''} onclick="activateNb('${n.id}')">${n.active?'Ativo':'Usar'}</button>

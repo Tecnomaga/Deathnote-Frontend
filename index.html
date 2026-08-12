@@ -140,6 +140,12 @@
     }
     .suspicion-bar { width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px; margin: 6px 0 12px; overflow: hidden; }
     .suspicion-fill { height: 100%; background: linear-gradient(90deg, #c4172a, #e07070); border-radius: 3px; transition: width 0.5s; }
+    .gram-usd { font-size: 0.75em; color: #8a9bb5; display: block; margin-top: 2px; }
+    .audio-toggle {
+      position: fixed; top: 10px; right: 10px; z-index: 300;
+      background: rgba(0,0,0,0.6); border: 1px solid var(--ash); color: var(--bone);
+      border-radius: 20px; padding: 6px 12px; font-size: 18px; cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -158,6 +164,7 @@
 </div>
 <div class="vignette"></div>
 <div class="notification-bar" id="notificationBar"></div>
+<button class="audio-toggle" id="audioToggle" onclick="toggleAudio()">🔊</button>
 
 <div class="app-root" id="appRoot">
   <div id="screen-intro" class="screen active"></div>
@@ -183,9 +190,47 @@
 const API_BASE = 'https://deathnote-backend-k6nq.onrender.com/api';
 const WALLET_ADDRESS = 'UQCA7IxtVOJ-YQhpOv_y8bVPAG5S7Fb0eFH8Mwre5dt_IHML';
 let authToken = '';
-let userData = null; // Objeto do usuário vindo do backend
-let targets = [];    // Alvos atuais
+let userData = null;
+let targets = [];
 let targetIndex = null;
+let gramPriceUSD = 0.05;
+
+// ====== AUDIO ENGINE (sintetizado) ======
+let audioCtx = null;
+let audioEnabled = true;
+
+function initAudio() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  }
+}
+
+function playTone(freq, type, duration, vol = 0.1) {
+  if (!audioEnabled || !audioCtx) return;
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+  gain.gain.setValueAtTime(vol, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + duration);
+}
+
+function sfxOpenBook() { playTone(200, 'sine', 0.8, 0.08); setTimeout(() => playTone(300, 'sine', 0.5, 0.08), 150); }
+function sfxWrite() { playTone(800, 'square', 0.3, 0.04); }
+function sfxSuccess() { playTone(600, 'triangle', 0.6, 0.1); setTimeout(() => playTone(900, 'triangle', 0.4, 0.1), 100); }
+function sfxFail() { playTone(150, 'sawtooth', 0.7, 0.15); }
+function sfxGacha() { for(let i=0;i<5;i++) setTimeout(() => playTone(400 + i*100, 'triangle', 0.2, 0.05), i*80); }
+function sfxDaily() { playTone(500, 'sine', 1, 0.1); setTimeout(() => playTone(700, 'sine', 0.5, 0.1), 150); }
+
+function toggleAudio() {
+  initAudio();
+  audioEnabled = !audioEnabled;
+  document.getElementById('audioToggle').textContent = audioEnabled ? '🔊' : '🔇';
+}
 
 // ====== PARTICLES ======
 const canvas=document.getElementById('particleCanvas'),ctx=canvas.getContext('2d');
@@ -237,15 +282,33 @@ async function loginWithTelegram() {
 async function refreshUser() {
   if (!authToken) return;
   try {
-    userData = await apiCall('/user/me');
+    const res = await apiCall('/user/me');
+    userData = res;
+    if (res.gramPriceUSD) gramPriceUSD = res.gramPriceUSD;
   } catch(e) {
     console.error('Erro ao atualizar usuário:', e);
   }
 }
 
+async function fetchPrice() {
+  try {
+    const res = await apiCall('/user/price');
+    if (res.gramPriceUSD) gramPriceUSD = res.gramPriceUSD;
+  } catch(e) {}
+}
+
 function activeNb() {
   if (!userData || !userData.inventory) return null;
   return userData.inventory.find(n => n.active) || userData.inventory[0] || null;
+}
+
+function formatGram(amount) {
+  return `${Number(amount).toFixed(2)} GRAM`;
+}
+
+function formatUSD(amount) {
+  const usd = Number(amount) * gramPriceUSD;
+  return `≈$${usd.toFixed(2)} USD`;
 }
 
 // ====== UI HELPERS ======
@@ -337,7 +400,7 @@ function renderIntro() {
       <div style="font-family:'Special Elite',monospace;font-size:11px;letter-spacing:5px;text-transform:uppercase;color:#8a8a8a;margin-top:8px;">O caderno escolheu você</div>
       <div style="width:140px;height:1px;background:linear-gradient(90deg,transparent,var(--blood-bright),transparent);margin:18px 0;position:relative;"><span style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:11px;color:var(--blood-bright);background:var(--abyss);padding:0 8px;">死</span></div>
       <div style="font-family:'Yuji Syuku',serif;font-size:14px;color:var(--ash);max-width:280px;line-height:1.75;">"O nome escrito neste caderno terá seu coração parado em 40 segundos."</div>
-      <button onclick="setScreen('tutorial')" style="margin-top:22px;padding:14px 42px;background:transparent;border:1px solid var(--blood-bright);border-radius:2px 10px 2px 10px;color:var(--bone);font-family:'Special Elite',monospace;font-size:14px;letter-spacing:3px;text-transform:uppercase;cursor:pointer;">Abrir o Caderno</button>
+      <button onclick="sfxOpenBook();setScreen('tutorial')" style="margin-top:22px;padding:14px 42px;background:transparent;border:1px solid var(--blood-bright);border-radius:2px 10px 2px 10px;color:var(--bone);font-family:'Special Elite',monospace;font-size:14px;letter-spacing:3px;text-transform:uppercase;cursor:pointer;">Abrir o Caderno</button>
     </div>`;
 }
 
@@ -345,33 +408,37 @@ function renderIntro() {
 function renderTutorial() {
   document.getElementById('screen-tutorial').innerHTML = `
     <div class="app-header"><button class="back-btn" onclick="setScreen('intro')">←</button><div class="logo">Death Note</div></div>
-    <div class="tutorial-step"><h3>📓 1. Seu Caderno</h3><p>Você começa com um caderno comum gratuito que dura 90 dias. Ele tem 1 página por dia e cada acerto paga 0.03 TON. Após acumular 2 TON, ele se extingue. Para continuar lucrando, adquira cadernos melhores no Portal ou na Loja.</p></div>
-    <div class="tutorial-step"><h3>✍️ 2. Escrevendo Nomes</h3><p>Escolha um alvo da lista, digite o nome completo corretamente e pressione Enter. Se errar ou desistir, perderá 1 página. Páginas recarregam diariamente. Cadernos raros dão multiplicadores de recompensa.</p></div>
-    <div class="tutorial-step"><h3>🔥 3. Nível Kira</h3><p>Cada execução bem‑sucedida concede experiência. Acumule pontos para subir de nível (máx. 20). Cada nível concede +0,5% de chance de acerto. Falhas consecutivas reduzem o progresso.</p></div>
-    <div class="tutorial-step"><h3>🎁 4. Presente Diário</h3><p>Jogadores gratuitos recebem um "bilhete do Shinigami" que reduz 2% de suspeita. Jogadores com cadernos pagos ganham 0.01 TON por dia, com bônus a cada 7 e 30 dias consecutivos.</p></div>
-    <div class="tutorial-step"><h3>🕵️ 5. Suspeita e Prisão</h3><p>Cada execução aumenta a suspeita de L em 2% (comum) ou 5% (outros). Se atingir 100%, você será preso por 1 a 3 dias, ficando impossibilitado de escrever nomes e recarregar páginas.</p></div>
-    <div class="tutorial-step"><h3>🎒 6. Inventário e Expansão</h3><p>Você possui 5 slots para cadernos. Compre expansões na Loja (5 TON por +5 slots). Gerencie bem seus cadernos, pois eles expiram com o tempo.</p></div>
-    <div class="tutorial-step"><h3>👥 7. Sistema de Referral</h3><p>Convide amigos usando seu link de convite. Você ganha 5% de todas as recargas que seus indicados fizerem!</p></div>
+    <div class="tutorial-step"><h3>📓 1. Seu Caderno</h3><p>Você começa com um caderno comum gratuito que dura 90 dias. Ele tem 1 página por dia e cada acerto paga 0.03 GRAM. Após acumular 2 GRAM, ele se extingue.</p></div>
+    <div class="tutorial-step"><h3>✍️ 2. Escrevendo Nomes</h3><p>Escolha um alvo, digite o nome correto e pressione Enter. Erros ou desistências consomem 1 página.</p></div>
+    <div class="tutorial-step"><h3>🔥 3. Nível Kira</h3><p>Cada execução bem‑sucedida concede experiência (máx. nível 20). Cada nível +0,5% chance de acerto.</p></div>
+    <div class="tutorial-step"><h3>🎁 4. Presente Diário</h3><p>Jogadores gratuitos reduzem 2% de suspeita. Jogadores com cadernos pagos ganham 0.01 GRAM/dia + bônus por streaks.</p></div>
+    <div class="tutorial-step"><h3>🕵️ 5. Suspeita e Prisão</h3><p>Cada execução aumenta a suspeita. 100% = prisão por 1-3 dias, sem poder escrever.</p></div>
+    <div class="tutorial-step"><h3>👥 6. Referral</h3><p>Convide amigos e ganhe 5% das recargas deles.</p></div>
     <button class="btn-modal" style="width:100%;margin-top:10px;" onclick="setScreen('dashboard')">Entendi</button>`;
 }
 
 // --- DASHBOARD ---
 async function renderDashboard() {
   await refreshUser();
+  await fetchPrice();
   const nb = activeNb();
   if (!nb) { document.getElementById('screen-dashboard').innerHTML = '<p>Erro ao carregar.</p>'; return; }
   const kiraLevel = Math.floor((userData.kiraXP || 0) / 5);
   const title = getTitle(userData.kiraXP);
   const prisonMsg = userData.prisonDays > 0 ? `<div class="glass-card" style="background:rgba(180,0,0,0.3);text-align:center;">🔒 Preso por ${userData.prisonDays} dia(s).</div>` : '';
   const offerBtn = (!userData.hasStarterPack)
-    ? `<button class="btn-game btn-offer" style="grid-column:1/-1;min-height:65px;margin-bottom:10px;font-size:15px;" onclick="buyStarterPack()">🔥 Oferta Limitada — Pacote Kira Iniciante (8 TON)</button>`
+    ? `<button class="btn-game btn-offer" style="grid-column:1/-1;min-height:65px;margin-bottom:10px;font-size:15px;" onclick="buyStarterPack()">🔥 Oferta Limitada — Pacote Kira Iniciante (8 GRAM)</button>`
     : '';
 
   document.getElementById('screen-dashboard').innerHTML = `
     <div class="app-header"><div class="logo">Death Note</div></div>
     ${offerBtn}
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;width:100%;margin-bottom:8px;">
-      <div class="glass-card" style="text-align:center;padding:10px 4px;"><span style="color:#c9a03a;font-size:clamp(15px,4vw,20px);">${(userData.balance || 0).toFixed(2)}</span><br><small>🍎 TON</small></div>
+      <div class="glass-card" style="text-align:center;padding:10px 4px;">
+        <span style="color:#c9a03a;font-size:clamp(15px,4vw,20px);">${formatGram(userData.balance || 0)}</span>
+        <span class="gram-usd">${formatUSD(userData.balance || 0)}</span>
+        <small>GRAM</small>
+      </div>
       <div class="glass-card" style="text-align:center;padding:10px 4px;"><span style="color:#8a9bb5;font-size:clamp(15px,4vw,20px);">${nb.pages}/${nb.maxPages}</span><br><small>📄 Páginas</small></div>
       <div class="glass-card" style="text-align:center;padding:10px 4px;background:rgba(180,20,20,0.2);"><span style="color:#e07070;font-size:clamp(15px,4vw,20px);">${userData.suspicion}%</span><br><small>🕵️ Suspeita</small></div>
     </div>
@@ -379,12 +446,12 @@ async function renderDashboard() {
     <div style="font-size:13px;color:var(--ash);margin:6px 0;background:rgba(255,255,255,0.05);padding:6px;border-radius:4px;">
       🎭 <b style="color:var(--rot-gold-light);">${title}</b> — Level Kira: ${kiraLevel} <small style="color:var(--blood-bright);">(+${(kiraLevel*0.5).toFixed(1)}% chance)</small>
     </div>
-    ${nb.isFree ? `<div class="glass-card" style="text-align:center;padding:6px;margin-bottom:6px;"><small>⏳ Limite vitalício: ${(nb.totalEarned || 0).toFixed(2)}/2.00 🍎</small></div>` : ''}
+    ${nb.isFree ? `<div class="glass-card" style="text-align:center;padding:6px;margin-bottom:6px;"><small>⏳ Limite vitalício: ${(nb.totalEarned || 0).toFixed(2)}/2.00 GRAM</small></div>` : ''}
     <div style="font-size:14px;color:var(--ash);width:100%;margin-bottom:2px;">👁️ Atenção de L: <b style="color:#e07070;">${userData.suspicion}%</b></div>
     <div class="suspicion-bar"><div class="suspicion-fill" style="width:${userData.suspicion}%"></div></div>
     <div class="btn-grid">
       <button class="btn-game btn-main" onclick="openTargets()" ${userData.prisonDays > 0 ? 'disabled' : ''}>✍️ Escrever um Nome</button>
-      <button class="btn-game" onclick="setScreen('gacha')">🌀 Portal</button>
+      <button class="btn-game" onclick="sfxGacha();setScreen('gacha')">🌀 Portal</button>
       <button class="btn-game" onclick="setScreen('shop')">🛒 Loja</button>
       <button class="btn-game" onclick="setScreen('inventory')">🎒 Inventário</button>
       <button class="btn-game" onclick="setScreen('deposit')">📥 Depósito</button>
@@ -421,7 +488,7 @@ function renderTargets() {
       <div class="glass-card target-card" onclick="startWriting(${i})">
         <span class="rarity-badge rarity-${t.rarity}">${t.rarity}</span>
         <div class="target-name">${escapeHtml(t.name)}</div>
-        <div class="target-stats" style="display:flex;justify-content:space-between;color:var(--ash);"><span>🎯 ${t.chance}%</span><span>🍎 ${(t.reward * nb.mult).toFixed(2)} TON</span></div>
+        <div class="target-stats" style="display:flex;justify-content:space-between;color:var(--ash);"><span>🎯 ${t.chance}%</span><span>🍎 ${(t.reward * nb.mult).toFixed(2)} GRAM</span></div>
       </div>
     `).join('')}
     <div style="margin-top:16px;text-align:center;">
@@ -431,9 +498,8 @@ function renderTargets() {
 
 async function desistirAlvos() {
   try {
-    const nb = activeNb();
-    nb.pages = Math.max(0, nb.pages - 1);
-    await apiCall('/user/me'); // Apenas recarregar
+    await apiCall('/user/fail', 'POST');
+    await refreshUser();
     showModal('📄', 'Você desistiu e perdeu 1 página.');
     setScreen('dashboard');
   } catch(e) {
@@ -454,6 +520,7 @@ function startWriting(idx) {
     <div style="margin-top:8px;font-size:11px;color:var(--ash);">Pressione Enter para enviar</div>`;
   document.getElementById('writingOverlay').classList.add('overlay-active');
   document.body.classList.add('writing-active');
+  initAudio();
   setTimeout(() => document.getElementById('nameInput').focus(), 300);
   document.getElementById('nameInput').addEventListener('keydown', async function(e) {
     if (e.key === 'Enter') {
@@ -463,10 +530,13 @@ function startWriting(idx) {
         document.getElementById('writingPaper').removeChild(this);
         await executePlay(t);
       } else {
-        const nb = activeNb();
-        nb.pages = Math.max(0, nb.pages - 1);
         document.getElementById('writingOverlay').classList.remove('overlay-active');
         document.body.classList.remove('writing-active');
+        try {
+          await apiCall('/user/fail', 'POST');
+          await refreshUser();
+          sfxFail();
+        } catch(ex) {}
         showModal('❌', 'Nome incorreto! Você perdeu 1 página.');
         setScreen('dashboard');
       }
@@ -485,7 +555,7 @@ async function executePlay(t) {
   result.classList.remove('show');
 
   const txt1 = `Escrevendo "${t.name}"...`;
-  for (let i = 0; i < txt1.length; i++) { pen.textContent += txt1[i]; await new Promise(r => setTimeout(r, 55)); }
+  for (let i = 0; i < txt1.length; i++) { pen.textContent += txt1[i]; sfxWrite(); await new Promise(r => setTimeout(r, 55)); }
   await new Promise(r => setTimeout(r, 400));
   deathSeq.textContent = '40 segundos se passaram...';
   deathSeq.style.opacity = '1';
@@ -493,25 +563,29 @@ async function executePlay(t) {
 
   try {
     const res = await apiCall('/user/execute', 'POST', { targetName: t.name, targetRarity: t.rarity });
-    const { success, reward } = res;
+    const { success, reward, rewardUSD, gramPriceUSD } = res;
     userData = res.user;
+    if (gramPriceUSD) gramPriceUSD = gramPriceUSD;
 
     if (success) {
       deathSeq.textContent = `O coração de ${t.name} parou.`;
       await new Promise(r => setTimeout(r, 1500));
-      result.textContent = `+${reward} 🍎`;
+      result.innerHTML = `<span style="color:#c9a03a;">+${reward} GRAM</span><br><span class="gram-usd" style="color:#8a9bb5;">≈$${rewardUSD} USD</span> 🍎`;
       result.classList.add('show');
+      sfxSuccess();
       if (t.rarity === 'legendary') showNotification(`🌟 Um Shinigami testemunhou a morte de ${t.name}!`);
     } else {
       deathSeq.textContent = `A vítima mentiu seu nome real... ${t.name} escapou.`;
       await new Promise(r => setTimeout(r, 1500));
       result.textContent = 'Nenhuma recompensa.';
       result.classList.add('show');
+      sfxFail();
     }
   } catch(e) {
     deathSeq.textContent = 'Erro na execução...';
     result.textContent = e.message;
     result.classList.add('show');
+    sfxFail();
   }
 
   await new Promise(r => setTimeout(r, 2000));
@@ -525,20 +599,19 @@ function renderGacha() {
   document.getElementById('screen-gacha').innerHTML = `
     <div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Portal</div></div>
     <div class="portal-container"><div class="portal-outer"><div class="portal-inner">🌀</div></div></div>
-    <div style="text-align:center;font-family:'Yuji Syuku';color:var(--rot-gold-light);margin-bottom:8px;">Invocar Cadernos (4 TON)</div>
+    <div style="text-align:center;font-family:'Yuji Syuku';color:var(--rot-gold-light);margin-bottom:8px;">Invocar Cadernos (4 GRAM)</div>
     <div style="display:flex;gap:8px;width:100%;margin-bottom:8px;">
-      <div class="glass-card" style="flex:1;text-align:center;cursor:pointer;" onclick="pullGacha(1)"><b>1x</b><br>4 TON</div>
-      <div class="glass-card" style="flex:1;text-align:center;cursor:pointer;" onclick="pullGacha(10)"><b>10x</b><br>40 TON</div>
+      <div class="glass-card" style="flex:1;text-align:center;cursor:pointer;" onclick="pullGacha(1)"><b>1x</b><br>4 GRAM</div>
+      <div class="glass-card" style="flex:1;text-align:center;cursor:pointer;" onclick="pullGacha(10)"><b>10x</b><br>40 GRAM</div>
     </div>
-    <div class="glass-card" style="font-size:11px;text-align:center;">Os deuses da morte decidem seu destino.</div>
     <div class="glass-card" style="text-align:center;padding:12px;">
       <b style="color:var(--rot-gold-light);">🛍️ Comprar Caderno Específico</b>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:6px;">
-        <div class="glass-card" style="padding:6px;text-align:center;cursor:pointer;" onclick="buyFixedNb('common')"><span class="rarity-badge rarity-common">Comum</span><br>3 TON</div>
-        <div class="glass-card" style="padding:6px;text-align:center;cursor:pointer;" onclick="buyFixedNb('uncommon')"><span class="rarity-badge rarity-uncommon">Incomum</span><br>10 TON</div>
-        <div class="glass-card" style="padding:6px;text-align:center;cursor:pointer;" onclick="buyFixedNb('rare')"><span class="rarity-badge rarity-rare">Raro</span><br>25 TON</div>
-        <div class="glass-card" style="padding:6px;text-align:center;cursor:pointer;" onclick="buyFixedNb('epic')"><span class="rarity-badge rarity-epic">Épico</span><br>50 TON</div>
-        <div class="glass-card" style="padding:6px;text-align:center;cursor:pointer;" onclick="buyFixedNb('legendary')"><span class="rarity-badge rarity-legendary">Lendário</span><br>100 TON</div>
+        <div class="glass-card" style="padding:6px;text-align:center;cursor:pointer;" onclick="buyFixedNb('common')"><span class="rarity-badge rarity-common">Comum</span><br>3 GRAM</div>
+        <div class="glass-card" style="padding:6px;text-align:center;cursor:pointer;" onclick="buyFixedNb('uncommon')"><span class="rarity-badge rarity-uncommon">Incomum</span><br>10 GRAM</div>
+        <div class="glass-card" style="padding:6px;text-align:center;cursor:pointer;" onclick="buyFixedNb('rare')"><span class="rarity-badge rarity-rare">Raro</span><br>25 GRAM</div>
+        <div class="glass-card" style="padding:6px;text-align:center;cursor:pointer;" onclick="buyFixedNb('epic')"><span class="rarity-badge rarity-epic">Épico</span><br>50 GRAM</div>
+        <div class="glass-card" style="padding:6px;text-align:center;cursor:pointer;" onclick="buyFixedNb('legendary')"><span class="rarity-badge rarity-legendary">Lendário</span><br>100 GRAM</div>
       </div>
     </div>
     <div id="gachaResult" style="margin-top:8px;width:100%;"></div>`;
@@ -549,14 +622,14 @@ async function pullGacha(q) {
   if (userData.inventory.length + q > userData.slots) { showModal('❌', 'Inventário cheio!'); return; }
   const cost = q * 4;
   if (userData.balance < cost) { showModal('❌', 'Saldo insuficiente.'); return; }
-  confirmAction('Confirmar Invocação', `${q}x Invocação\nCusto: ${cost} TON`, async () => {
+  confirmAction('Confirmar Invocação', `${q}x Invocação\nCusto: ${cost} GRAM`, async () => {
     try {
       const res = await apiCall('/user/gacha', 'POST', { quantity: q });
       userData = res.user;
-      const sum = {};
-      res.results.forEach(r => sum[r] = (sum[r] || 0) + 1);
-      showModal('🌀', `Obtido: ${Object.entries(sum).map(([r,c]) => `${c}x ${r}`).join(', ')}`);
-      document.getElementById('gachaResult').innerHTML = `<div class="glass-card" style="text-align:center;color:var(--rot-gold-light);">Último pull: ${Object.entries(sum).map(([r,c]) => `${c}x ${r}`).join(', ')}</div>`;
+      const resultsHtml = res.results.map(r => `<span class="rarity-badge rarity-${r.rarity}">${r.rarity}</span> ${r.name}`).join('<br>');
+      document.getElementById('gachaResult').innerHTML = `<div class="glass-card" style="text-align:center;color:var(--rot-gold-light);">${resultsHtml}</div>`;
+      showModal('🌀', `Obtido:<br>${resultsHtml}`);
+      sfxGacha();
       setScreen('dashboard');
     } catch(e) { showModal('❌', e.message); }
   });
@@ -567,11 +640,11 @@ async function buyFixedNb(rarity) {
   if (userData.inventory.length + 1 > userData.slots) { showModal('❌', 'Inventário cheio!'); return; }
   const prices = { common: 3, uncommon: 10, rare: 25, epic: 50, legendary: 100 };
   if (userData.balance < prices[rarity]) { showModal('❌', 'Saldo insuficiente.'); return; }
-  confirmAction('Confirmar Compra', `Caderno ${rarity}\nPreço: ${prices[rarity]} TON`, async () => {
+  confirmAction('Confirmar Compra', `Caderno ${rarity}\nPreço: ${prices[rarity]} GRAM`, async () => {
     try {
       const res = await apiCall('/user/buy-notebook', 'POST', { rarity });
       userData = res.user;
-      showModal('📓', 'Caderno adquirido!');
+      showModal('📓', `<span class="rarity-badge rarity-${res.rarity}">${res.rarity}</span> ${res.notebookName} adquirido!`);
       setScreen('dashboard');
     } catch(e) { showModal('❌', e.message); }
   });
@@ -579,7 +652,7 @@ async function buyFixedNb(rarity) {
 
 // --- SHOP ---
 const shopItems = [
-  { id: 'starter_pack', icon: '🎁', name: 'Pacote Kira Iniciante', desc: '1x Caderno Incomum + Olhos + Máscara', price: 8.0 },
+  { id: 'starter_pack', icon: '🎁', name: 'Pacote Kira Iniciante', desc: '📓 Caderno de Misa (Incomum)<br>👁️ Olhos de Shinigami (5 usos)<br>🎭 Máscara de Kira (-30 suspeita)', price: 8.0 },
   { id: 'disguise', icon: '🎭', name: 'Máscara de Kira', desc: 'Reduz 30 de suspeita.', price: 1.5 },
   { id: 'eyes', icon: '👁️', name: 'Olhos de Shinigami (5 usos)', desc: '+15% chance por 5 tentativas.', price: 5.0 },
   { id: 'expand', icon: '📦', name: 'Expansão de Inventário', desc: '+5 slots para cadernos.', price: 5.0 }
@@ -593,7 +666,7 @@ function renderShop() {
     ${shopItems.map(i => `
       <div class="glass-card" style="display:flex;align-items:center;gap:10px;">
         <span style="font-size:26px;">${i.icon}</span>
-        <div style="flex:1;"><b>${i.name}</b><br><small style="color:var(--ash);">${i.desc}</small><br><span style="color:#c9a03a;">${i.price} TON</span></div>
+        <div style="flex:1;"><b>${i.name}</b><br><small style="color:var(--ash);">${i.desc}</small><br><span style="color:#c9a03a;">${i.price} GRAM</span></div>
         <button class="btn-game" style="padding:8px 14px;" onclick="buyItem('${i.id}')" ${i.id === 'starter_pack' ? starterDisabled : ''}>${i.id === 'starter_pack' ? starterText : 'Comprar'}</button>
       </div>`).join('')}`;
 }
@@ -605,7 +678,8 @@ async function buyItem(id) {
   const item = shopItems.find(i => i.id === id);
   if (!item) return;
   if (userData.balance < item.price) { showModal('❌', 'Saldo insuficiente.'); return; }
-  confirmAction('Confirmar Compra', `${item.name}\nPreço: ${item.price} TON`, async () => {
+  const itemDesc = id === 'starter_pack' ? '📓 Caderno de Misa (Incomum)<br>👁️ Olhos de Shinigami (5 usos)<br>🎭 Máscara de Kira (-30 suspeita)' : item.desc;
+  confirmAction('Confirmar Compra', `${item.name}<br>${itemDesc}<br>Preço: ${item.price} GRAM`, async () => {
     try {
       const res = await apiCall('/user/buy-item', 'POST', { itemId: id });
       userData = res.user;
@@ -647,10 +721,10 @@ function renderDeposit() {
   document.getElementById('screen-deposit').innerHTML = `
     <div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Depósito</div></div>
     <div class="glass-card" style="padding:18px;text-align:center;">
-      <p style="font-size:15px;color:var(--rot-gold-light);">📥 Envie TON para:</p>
+      <p style="font-size:15px;color:var(--rot-gold-light);">📥 Envie GRAM para:</p>
       <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:12px;margin:10px 0;word-break:break-all;font-family:monospace;font-size:14px;">${WALLET_ADDRESS}</div>
       <button class="copy-btn" onclick="copyWallet()">📋 Copiar</button>
-      <input id="depositAmount" type="number" placeholder="Valor enviado (TON)" min="0.5" step="0.1" class="large-input">
+      <input id="depositAmount" type="number" placeholder="Valor enviado (GRAM)" min="0.5" step="0.1" class="large-input">
       <input id="depositTxid" placeholder="TXID da transação" class="large-input">
       <button class="btn-modal" style="width:100%;margin-top:8px;" onclick="submitDeposit()">Enviar Comprovante</button>
       <p style="font-size:11px;color:var(--ash);margin-top:8px;">O administrador creditará manualmente.</p>
@@ -665,7 +739,7 @@ async function submitDeposit() {
   const amount = document.getElementById('depositAmount')?.value;
   const txid = document.getElementById('depositTxid')?.value.trim();
   if (!amount || !txid) { showModal('❌', 'Preencha valor e TXID.'); return; }
-  confirmAction('Confirmar Depósito', `Enviar comprovante de ${amount} TON?\nTXID: ${txid}`, async () => {
+  confirmAction('Confirmar Depósito', `Enviar comprovante de ${amount} GRAM?\nTXID: ${txid}`, async () => {
     try {
       await apiCall('/deposit', 'POST', { amount: parseFloat(amount), txid });
       showModal('📥', `Comprovante enviado!\nTXID: ${txid}\nAguardando aprovação.`);
@@ -680,10 +754,10 @@ function renderWithdraw() {
   document.getElementById('screen-withdraw').innerHTML = `
     <div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Saque</div></div>
     <div class="glass-card" style="padding:18px;text-align:center;">
-      <p style="font-size:17px;color:var(--rot-gold-light);">📤 Saldo: <b>${(userData?.balance || 0).toFixed(2)} TON</b></p>
-      <p style="font-size:13px;color:var(--ash);">Taxa de 5% (inclui rede). Mínimo 1 TON.</p>
+      <p style="font-size:17px;color:var(--rot-gold-light);">📤 Saldo: <b>${formatGram(userData?.balance || 0)}</b> <span class="gram-usd">${formatUSD(userData?.balance || 0)}</span></p>
+      <p style="font-size:13px;color:var(--ash);">Taxa de 5% (inclui rede). Mínimo 1 GRAM.</p>
       <input id="withdrawAddr" placeholder="Sua carteira TON" class="large-input">
-      <input id="withdrawAmount" type="number" placeholder="Valor em TON" min="1" step="0.1" class="large-input">
+      <input id="withdrawAmount" type="number" placeholder="Valor em GRAM" min="1" step="0.1" class="large-input">
       <button class="btn-modal" style="width:100%;" onclick="requestWithdraw()">Solicitar Saque</button>
     </div>`;
 }
@@ -695,10 +769,10 @@ async function requestWithdraw() {
   const fee = amt * 0.05;
   const total = amt + fee;
   if (userData.balance < total) { showModal('❌', 'Saldo insuficiente.'); return; }
-  confirmAction('Confirmar Saque', `Sacar ${amt} TON para:\n${addr}\nTaxa: ${fee} TON\nTotal: ${total} TON`, async () => {
+  confirmAction('Confirmar Saque', `Sacar ${amt} GRAM para:\n${addr}\nTaxa: ${fee} GRAM\nTotal: ${total} GRAM`, async () => {
     try {
       const res = await apiCall('/withdraw', 'POST', { address: addr, amount: amt });
-      showModal('📤', `Saque de ${amt} TON solicitado!`);
+      showModal('📤', `Saque de ${amt} GRAM solicitado!`);
       document.getElementById('withdrawAddr').value = '';
       document.getElementById('withdrawAmount').value = '';
       await refreshUser();
@@ -713,20 +787,16 @@ function renderProfile() {
   const nb = activeNb();
   const kiraLevel = Math.floor((userData.kiraXP || 0) / 5);
   const title = getTitle(userData.kiraXP);
-  const daysLeft = nb ? (nb.isFree ? Math.ceil((new Date(nb.createdAt).getTime() + 7776000000 - Date.now()) / 86400000) : Math.ceil((new Date(nb.createdAt).getTime() + nb.dur * 86400000 - Date.now()) / 86400000)) : 'N/A';
   document.getElementById('screen-profile').innerHTML = `
     <div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Perfil</div></div>
     <div class="glass-card" style="padding:18px;text-align:left;font-size:14px;">
       <p style="font-size:20px;text-align:center;color:var(--rot-gold-light);margin-bottom:10px;">🎭 ${title}</p>
       <p style="margin:6px 0;"><b>Caderno ativo:</b> ${nb?.name || 'Nenhum'}</p>
-      <p style="margin:6px 0;"><b>Páginas:</b> ${nb?.pages || 0}/${nb?.maxPages || 0}</p>
-      <p style="margin:6px 0;"><b>Saldo:</b> ${(userData.balance || 0).toFixed(2)} 🍎</p>
+      <p style="margin:6px 0;"><b>Saldo:</b> ${formatGram(userData.balance || 0)} <span class="gram-usd">${formatUSD(userData.balance || 0)}</span></p>
       <p style="margin:6px 0;"><b>Suspeita:</b> ${userData.suspicion}%</p>
       <p style="margin:6px 0;"><b>Olhos:</b> ${userData.eyes ? userData.eyesLeft + ' usos' : 'Inativos'}</p>
       <p style="margin:6px 0;"><b>Level Kira:</b> ${kiraLevel}</p>
       <p style="margin:6px 0;"><b>Jogadas:</b> ${userData.plays} (✅${userData.wins} ❌${userData.losses})</p>
-      <p style="margin:6px 0;"><b>Prisão:</b> ${userData.prisonDays > 0 ? userData.prisonDays + ' dia(s)' : 'Livre'}</p>
-      <p style="margin:6px 0;"><b>Slots:</b> ${userData.inventory?.length || 0}/${userData.slots}</p>
     </div>`;
 }
 
@@ -744,7 +814,7 @@ async function renderReferral() {
       <p style="font-size:13px;color:var(--ash);margin:10px 0;">Convide amigos e ganhe <b style="color:#c9a03a;">5%</b> das recargas deles!</p>
       <div style="background:rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:12px;margin:10px 0;word-break:break-all;font-family:monospace;font-size:13px;">${escapeHtml(refLink)}</div>
       <button class="copy-btn" onclick="copyRef('${escapeHtml(refLink)}')">📋 Copiar Link</button>
-      <p style="font-size:13px;color:var(--ash);margin-top:14px;">Ganhos: <b style="color:#c9a03a;">${(refData.referralEarnings || 0).toFixed(2)} TON</b></p>
+      <p style="font-size:13px;color:var(--ash);margin-top:14px;">Ganhos: <b style="color:#c9a03a;">${(refData.referralEarnings || 0).toFixed(2)} GRAM</b></p>
     </div>`;
 }
 
@@ -760,11 +830,14 @@ function renderHistory() {
     el.innerHTML += '<div class="glass-card" style="text-align:center;color:var(--ash);">Nenhuma execução ainda.</div>';
     return;
   }
-  el.innerHTML += userData.history.slice().reverse().map(h => `
-    <div class="glass-card" style="display:flex;justify-content:space-between;align-items:center;">
+  el.innerHTML += userData.history.slice().reverse().map(h => {
+    const rewardGram = h.success ? `+${h.reward} GRAM` : '0.00 GRAM';
+    const rewardUSD = h.success ? formatUSD(parseFloat(h.reward)) : '';
+    return `<div class="glass-card" style="display:flex;justify-content:space-between;align-items:center;">
       <span>${escapeHtml(h.target)} <span class="rarity-badge rarity-${h.rarity}">${h.rarity}</span></span>
-      <span style="color:${h.success ? '#7cb87c' : '#e07070'}">${h.success ? '✅ +' + h.reward + ' 🍎' : '❌ Falhou'}</span>
-    </div>`).join('');
+      <span style="color:${h.success ? '#7cb87c' : '#e07070'}">${h.success ? '✅' : '❌'} ${rewardGram}${rewardUSD ? ' <span class="gram-usd">' + rewardUSD + '</span>' : ''}</span>
+    </div>`;
+  }).join('');
 }
 
 // --- DAILY ---
@@ -773,19 +846,21 @@ async function claimDaily() {
   try {
     const res = await apiCall('/user/daily', 'POST');
     userData = res.user;
+    if (res.gramPriceUSD) gramPriceUSD = res.gramPriceUSD;
     const nb = activeNb();
     if (nb?.isFree) {
       showModal('🎁', '"Um bilhete aparece ao lado do seu caderno: L está distraído hoje..."\n-2% de suspeita.');
     } else {
-      showModal('🎁', '+0,01 🍎 diário!');
+      showModal('🎁', `+0.01 GRAM diário!\n${formatUSD(0.01)}`);
     }
+    sfxDaily();
     setScreen('dashboard');
   } catch(e) { showModal('❌', e.message); }
 }
 
 // ====== INIT ======
 window.onload = async () => {
-  // Tentar restaurar token salvo
+  initAudio();
   const savedToken = localStorage.getItem('auth_token');
   if (savedToken) {
     authToken = savedToken;
@@ -805,14 +880,13 @@ window.onload = async () => {
     }
   }
 
+  await fetchPrice();
   setScreen('intro');
 
-  // Fechar modal ao clicar fora
   document.getElementById('modalOverlay').addEventListener('click', e => {
     if (e.target === e.currentTarget) e.currentTarget.classList.remove('overlay-active');
   });
 
-  // Botão voltar do Telegram
   tg.BackButton.onClick(() => {
     const currentScreen = document.querySelector('.screen.active');
     if (currentScreen && currentScreen.id === 'screen-dashboard') {

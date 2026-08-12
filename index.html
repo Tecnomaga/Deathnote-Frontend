@@ -205,7 +205,6 @@
   <div id="screen-profile" class="screen"></div>
   <div id="screen-referral" class="screen"></div>
   <div id="screen-history" class="screen"></div>
-  <div id="screen-ranking" class="screen"></div>
 </div>
 
 <div class="writing-overlay" id="writingOverlay"><div class="paper" id="writingPaper"></div></div>
@@ -220,7 +219,7 @@ let authToken = '';
 let userData = null;
 let targets = [];
 let targetIndex = null;
-let gramPriceUSD = 0.05; // fallback visível
+let gramPriceBRL = null; // preço em BRL, será atualizado
 
 // ====== ÁUDIO ======
 let audioCtx = null;
@@ -391,16 +390,16 @@ async function refreshUser() {
   } catch(e) {}
 }
 
-// ✅ Cotação usando o ID exato do Gram Catcher (the-open-network)
+// ✅ Cotação BRL em tempo real (igual Gram Catcher)
 async function updateGramPrice() {
   try {
-    const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=usd');
+    const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=the-open-network&vs_currencies=brl');
     const data = await res.json();
-    if (data && data['the-open-network'] && data['the-open-network'].usd > 0) {
-      gramPriceUSD = data['the-open-network'].usd;
+    if (data && data['the-open-network'] && data['the-open-network'].brl > 0) {
+      gramPriceBRL = data['the-open-network'].brl;
     }
   } catch(e) {
-    // mantém o último valor ou fallback 0.05
+    // mantém último valor
   }
 }
 
@@ -408,10 +407,10 @@ function formatGram(amount) {
   return `${Number(amount).toFixed(2)} 🍎 GRAM`;
 }
 
-function formatUSD(amount) {
-  // sempre retorna algo visível
-  const usd = Number(amount) * (gramPriceUSD || 0.05);
-  return `≈ $${usd.toFixed(2)} USD`;
+function formatBRL(amount) {
+  if (!gramPriceBRL) return 'R$ --';
+  const brl = Number(amount) * gramPriceBRL;
+  return `≈ R$ ${brl.toFixed(2)}`;
 }
 
 // ====== UI ======
@@ -479,8 +478,7 @@ function updateScreenContent(id) {
     intro: renderIntro, tutorial: renderTutorial, dashboard: renderDashboard,
     targets: renderTargets, gacha: renderGacha, shop: renderShop,
     inventory: renderInventory, deposit: renderDeposit, withdraw: renderWithdraw,
-    profile: renderProfile, referral: renderReferral, history: renderHistory,
-    ranking: renderRanking
+    profile: renderProfile, referral: renderReferral, history: renderHistory
   };
   if (fn[id]) fn[id]();
 }
@@ -539,7 +537,7 @@ async function renderDashboard() {
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;width:100%;margin-bottom:8px;">
       <div class="glass-card" style="text-align:center;padding:10px 4px;">
         <span style="color:#c9a03a;font-size:clamp(16px,4vw,22px);">${(userData.balance||0).toFixed(2)} 🍎</span>
-        <span class="gram-usd" style="font-size:0.75em;color:#8a9bb5;">${formatUSD(userData.balance||0)}</span>
+        <span class="gram-usd" style="font-size:0.75em;color:#8a9bb5;">${formatBRL(userData.balance||0)}</span>
       </div>
       <div class="glass-card" style="text-align:center;padding:10px 4px;"><span style="color:#8a9bb5;font-size:clamp(16px,4vw,22px);">${nb.pages}/${nb.maxPages}</span><br><small>📄 Páginas</small></div>
       <div class="glass-card" style="text-align:center;padding:10px 4px;background:rgba(180,20,20,0.2);"><span style="color:#e07070;font-size:clamp(16px,4vw,22px);">${userData.suspicion || 0}%</span><br><small>🕵️ Suspeita</small></div>
@@ -561,7 +559,6 @@ async function renderDashboard() {
       <button class="btn-game" onclick="setScreen('profile')">🎭 Perfil</button>
       <button class="btn-game" onclick="setScreen('referral')">👥 Referral</button>
       <button class="btn-game" onclick="setScreen('history')">📜 Histórico</button>
-      <button class="btn-game" onclick="setScreen('ranking')">🏆 Ranking</button>
       <button class="btn-game" onclick="claimDaily()">🎁 Diário</button>
     </div>`;
 }
@@ -671,24 +668,24 @@ async function executePlay(t) {
   setScreen('dashboard');
 }
 
-// --- GACHA (mensagem corrigida) ---
+// --- GACHA ---
 function renderGacha() {
   document.getElementById('screen-gacha').innerHTML = `
     <div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Portal</div></div>
     <div class="portal-container"><div class="portal-outer"><div class="portal-inner">🌀</div></div></div>
     <div style="text-align:center;font-family:'Yuji Syuku';color:var(--rot-gold-light);margin-bottom:8px;">Invocar Cadernos (4 🍎 GRAM)</div>
     <div style="display:flex;gap:8px;width:100%;margin-bottom:8px;">
-      <div class="glass-card" style="flex:1;text-align:center;cursor:pointer;" onclick="pullGacha(1)"><b>1x</b><br>4 🍎 GRAM</div>
-      <div class="glass-card" style="flex:1;text-align:center;cursor:pointer;" onclick="pullGacha(10)"><b>10x</b><br>40 🍎 GRAM</div>
+      <div class="glass-card" style="flex:1;text-align:center;cursor:pointer;" onclick="pullGacha(1)"><b>1x</b><br>4 🍎 GRAM<br><small style="color:var(--ash);">${formatBRL(4)}</small></div>
+      <div class="glass-card" style="flex:1;text-align:center;cursor:pointer;" onclick="pullGacha(10)"><b>10x</b><br>40 🍎 GRAM<br><small style="color:var(--ash);">${formatBRL(40)}</small></div>
     </div>
     <div class="glass-card" style="text-align:center;padding:12px;">
       <b style="color:var(--rot-gold-light);">🛍️ Comprar Caderno Específico</b>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:6px;">
-        <div class="glass-card" style="padding:6px;text-align:center;cursor:pointer;" onclick="buyFixedNb('common')"><span class="rarity-badge rarity-common">Comum</span><br>3 🍎 GRAM</div>
-        <div class="glass-card" style="padding:6px;text-align:center;cursor:pointer;" onclick="buyFixedNb('uncommon')"><span class="rarity-badge rarity-uncommon">Incomum</span><br>10 🍎 GRAM</div>
-        <div class="glass-card" style="padding:6px;text-align:center;cursor:pointer;" onclick="buyFixedNb('rare')"><span class="rarity-badge rarity-rare">Raro</span><br>25 🍎 GRAM</div>
-        <div class="glass-card" style="padding:6px;text-align:center;cursor:pointer;" onclick="buyFixedNb('epic')"><span class="rarity-badge rarity-epic">Épico</span><br>50 🍎 GRAM</div>
-        <div class="glass-card" style="padding:6px;text-align:center;cursor:pointer;" onclick="buyFixedNb('legendary')"><span class="rarity-badge rarity-legendary">Lendário</span><br>100 🍎 GRAM</div>
+        <div class="glass-card" style="padding:6px;text-align:center;cursor:pointer;" onclick="buyFixedNb('common')"><span class="rarity-badge rarity-common">Comum</span><br>3 🍎 GRAM<br><small style="color:var(--ash);">${formatBRL(3)}</small></div>
+        <div class="glass-card" style="padding:6px;text-align:center;cursor:pointer;" onclick="buyFixedNb('uncommon')"><span class="rarity-badge rarity-uncommon">Incomum</span><br>10 🍎 GRAM<br><small style="color:var(--ash);">${formatBRL(10)}</small></div>
+        <div class="glass-card" style="padding:6px;text-align:center;cursor:pointer;" onclick="buyFixedNb('rare')"><span class="rarity-badge rarity-rare">Raro</span><br>25 🍎 GRAM<br><small style="color:var(--ash);">${formatBRL(25)}</small></div>
+        <div class="glass-card" style="padding:6px;text-align:center;cursor:pointer;" onclick="buyFixedNb('epic')"><span class="rarity-badge rarity-epic">Épico</span><br>50 🍎 GRAM<br><small style="color:var(--ash);">${formatBRL(50)}</small></div>
+        <div class="glass-card" style="padding:6px;text-align:center;cursor:pointer;" onclick="buyFixedNb('legendary')"><span class="rarity-badge rarity-legendary">Lendário</span><br>100 🍎 GRAM<br><small style="color:var(--ash);">${formatBRL(100)}</small></div>
       </div>
     </div>
     <div id="gachaResult" style="margin-top:8px;width:100%;"></div>`;
@@ -746,11 +743,11 @@ function renderShop() {
   const starterText=userData?.hasStarterPack?'Adquirido':'Comprar';
   document.getElementById('screen-shop').innerHTML = `
     <div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Loja</div></div>
-    <div class="price-info">🍎 1 Maçã = 1 GRAM ≈ ${formatUSD(1)}</div>
+    <div class="price-info">🍎 1 Maçã = 1 GRAM ≈ ${formatBRL(1)}</div>
     ${shopItems.map(i=>`
       <div class="glass-card" style="display:flex;align-items:center;gap:10px;">
         <span style="font-size:26px;">${i.icon}</span>
-        <div style="flex:1;"><b>${i.name}</b><br><small style="color:var(--ash);font-size:13px;">${i.desc}</small><br><span style="color:#c9a03a;font-size:15px;">${i.price} 🍎 GRAM</span></div>
+        <div style="flex:1;"><b>${i.name}</b><br><small style="color:var(--ash);font-size:13px;">${i.desc}</small><br><span style="color:#c9a03a;font-size:15px;">${i.price} 🍎 GRAM</span><br><small style="color:var(--ash);">${formatBRL(i.price)}</small></div>
         <button class="btn-game" style="padding:8px 14px;" onclick="buyItem('${i.id}')" ${i.id==='starter_pack'?starterDisabled:''}>${i.id==='starter_pack'?starterText:'Comprar'}</button>
       </div>`).join('')}`;
 }
@@ -836,7 +833,7 @@ function renderWithdraw() {
   document.getElementById('screen-withdraw').innerHTML = `
     <div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Saque</div></div>
     <div class="glass-card" style="padding:18px;text-align:center;">
-      <p style="font-size:18px;color:var(--rot-gold-light);">📤 Saldo: <b>${(userData?.balance||0).toFixed(2)} 🍎 GRAM</b> <span style="font-size:0.8em;color:#8a9bb5;">${formatUSD(userData?.balance||0)}</span></p>
+      <p style="font-size:18px;color:var(--rot-gold-light);">📤 Saldo: <b>${(userData?.balance||0).toFixed(2)} 🍎 GRAM</b> <span style="font-size:0.8em;color:#8a9bb5;">${formatBRL(userData?.balance||0)}</span></p>
       <p style="font-size:14px;color:var(--ash);">Taxa de 5% (inclui rede). Mínimo 1 🍎 GRAM.</p>
       <input id="withdrawAddr" placeholder="Sua carteira TON" class="large-input">
       <input id="withdrawAmount" type="number" placeholder="Valor em GRAM" min="1" step="0.1" class="large-input">
@@ -878,7 +875,7 @@ function renderProfile() {
       <p style="margin:6px 0;"><b>Páginas:</b> ${nb?.pages||0}/${nb?.maxPages||0} por dia</p>
       <p style="margin:6px 0;"><b>Multiplicador:</b> ${nb?.mult||1}x</p>
       <p style="margin:6px 0;"><b>Duração restante:</b> ${daysLeft>0?daysLeft+' dias':'Expirado'}</p>
-      <p style="margin:6px 0;"><b>Saldo:</b> ${formatGram(userData.balance||0)} ${formatUSD(userData.balance||0)}</p>
+      <p style="margin:6px 0;"><b>Saldo:</b> ${formatGram(userData.balance||0)} ${formatBRL(userData.balance||0)}</p>
       <p style="margin:6px 0;"><b>Suspeita:</b> ${userData.suspicion || 0}%</p>
       <p style="margin:6px 0;"><b>Olhos de Shinigami:</b> ${userData.eyes?userData.eyesLeft+' usos':'Inativos'}</p>
       <p style="margin:6px 0;"><b>Level Kira:</b> ${kiraLevel} (+${(kiraLevel*0.5).toFixed(1)}% chance)</p>
@@ -961,39 +958,6 @@ function switchHistoryTab(tab) {
   document.getElementById('tabTransacoes').classList.toggle('active', tab==='transacoes');
   document.getElementById('historyExecucoes').style.display = tab==='execucoes'?'block':'none';
   document.getElementById('historyTransacoes').style.display = tab==='transacoes'?'block':'none';
-}
-
-// --- RANKING ---
-async function renderRanking() {
-  let rankingData = { topBalance: [], topWins: [] };
-  try { rankingData = await apiCall('/ranking'); } catch(e) {}
-  document.getElementById('screen-ranking').innerHTML = `
-    <div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">🏆 Ranking</div></div>
-    <div class="tab-row">
-      <button class="tab-btn active" id="tabSaldo" onclick="switchRankTab('saldo')">💰 Saldo</button>
-      <button class="tab-btn" id="tabExecucoesRank" onclick="switchRankTab('execucoes')">💀 Execuções</button>
-    </div>
-    <div id="rankSaldo">
-      ${rankingData.topBalance.map((u,i) => `
-        <div class="glass-card" style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:15px;">#${i+1} ${escapeHtml(u.username||'Anônimo')}</span>
-          <span style="color:#c9a03a;font-size:15px;">${(u.balance||0).toFixed(2)} 🍎</span>
-        </div>`).join('')}
-    </div>
-    <div id="rankExecucoes" style="display:none;">
-      ${rankingData.topWins.map((u,i) => `
-        <div class="glass-card" style="display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:15px;">#${i+1} ${escapeHtml(u.username||'Anônimo')}</span>
-          <span style="color:#e07070;font-size:15px;">${u.wins||0} 💀</span>
-        </div>`).join('')}
-    </div>`;
-}
-
-function switchRankTab(tab) {
-  document.getElementById('tabSaldo').classList.toggle('active', tab==='saldo');
-  document.getElementById('tabExecucoesRank').classList.toggle('active', tab==='execucoes');
-  document.getElementById('rankSaldo').style.display = tab==='saldo'?'block':'none';
-  document.getElementById('rankExecucoes').style.display = tab==='execucoes'?'block':'none';
 }
 
 // --- DAILY ---

@@ -346,9 +346,10 @@ const tg = window.Telegram.WebApp;
 tg.ready();
 tg.expand();
 
-// ✅ Captura start_param do Telegram (como Gram Catcher)
-function getReferrerFromUrl() {
-  return tg.initDataUnsafe?.start_param || '';
+// Captura o start_param da URL (adicionado pelo webhook do bot)
+function getStartParam() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('start_param') || '';
 }
 
 async function apiCall(endpoint, method = 'GET', body = null) {
@@ -366,7 +367,11 @@ async function loginWithTelegram() {
   const initData = tg.initData;
   if (!initData) { showModal('❌', 'Abra este jogo pelo Telegram!'); return false; }
   try {
-    const result = await apiCall('/auth/telegram', 'POST', { initData });
+    const startParam = getStartParam();
+    const result = await apiCall('/auth/telegram', 'POST', { 
+      initData, 
+      startParamFromUrl: startParam 
+    });
     authToken = result.token;
     userData = result.user;
     sessionStorage.setItem('auth_token', authToken);
@@ -382,7 +387,7 @@ async function refreshUser() {
   } catch(e) {}
 }
 
-// ✅ Cotação em tempo real via CoinGecko (como Gram Catcher)
+// Cotação em tempo real via CoinGecko
 async function updateGramPrice() {
   try {
     const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=toncoin&vs_currencies=usd');

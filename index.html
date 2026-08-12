@@ -68,7 +68,7 @@
 
     .glass-card {
       position: relative; background: var(--panel); backdrop-filter: var(--glass); -webkit-backdrop-filter: var(--glass);
-      border: 1px solid rgba(216,207,174,0.09); border-radius: 4px 13px 4px 13px; padding: 14px; margin-bottom: 8px;
+      border: 1px solid rgba(216,207,174,0.09); border-radius: 4px 13px 4px 13px; padding: 14px; margin-bottom: 12px;
       box-shadow: 0 8px 22px rgba(0,0,0,0.5); width: 100%;
     }
     .glass-card::before { content: ''; position: absolute; top: 0; left: 14px; right: 14px; height: 1px; background: linear-gradient(90deg, transparent, rgba(196,23,42,0.35), transparent); }
@@ -102,7 +102,11 @@
 
     .writing-overlay, .modal-overlay { position: fixed; inset: 0; background: rgba(3,2,5,0.94); backdrop-filter: blur(12px); z-index: 100; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.3s; }
     .overlay-active { opacity: 1 !important; pointer-events: auto !important; }
-    .paper, .modal-box { position: relative; background: radial-gradient(ellipse at 15% 10%, rgba(196,23,42,0.06), transparent 40%), radial-gradient(ellipse at 85% 90%, rgba(200,255,77,0.03), transparent 45%), #15121a; border: 1px solid rgba(216,207,174,0.18); border-radius: 4px 16px 4px 16px; padding: 24px 22px; max-width: 360px; width: 95%; text-align: center; box-shadow: 0 0 60px rgba(125,15,30,0.3); }
+    .paper, .modal-box {
+      position: relative; background: radial-gradient(ellipse at 15% 10%, rgba(196,23,42,0.06), transparent 40%), radial-gradient(ellipse at 85% 90%, rgba(200,255,77,0.03), transparent 45%), #15121a;
+      border: 1px solid rgba(216,207,174,0.18); border-radius: 4px 16px 4px 16px; padding: 24px 22px; max-width: 360px; width: 95%; text-align: center; box-shadow: 0 0 60px rgba(125,15,30,0.3);
+      max-height: 90vh; overflow-y: auto;
+    }
     .writing-input { background: rgba(0,0,0,0.55); border: 2px solid var(--blood-bright); color: #fff; padding: 12px; border-radius: 3px 10px 3px 10px; width: 100%; font-family: 'Yuji Syuku', serif; font-size: 19px; text-align: center; outline: none; margin: 14px 0; }
     .writing-input:focus { border-color: var(--shinigami-eye); box-shadow: 0 0 15px rgba(200,255,77,0.35); }
     .btn-modal { background: linear-gradient(135deg, var(--blood-bright), #8b0f1a); border: 1px solid rgba(216,207,174,0.15); color: #fff; padding: 12px 28px; border-radius: 4px 12px 4px 12px; font-weight: 700; font-family: 'Cinzel', serif; cursor: pointer; box-shadow: 0 4px 15px rgba(125,15,30,0.45); margin: 4px; font-size: 15px; }
@@ -147,6 +151,15 @@
       font-family: 'Cinzel', serif;
       font-weight: 900;
       letter-spacing: 2px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      gap: 4px;
+      min-height: 90px;
+      padding: 16px;
+      box-sizing: border-box;
     }
 
     .suspicion-bar { width: 100%; height: 8px; background: rgba(255,255,255,0.25); border-radius: 4px; margin: 6px 0 12px; overflow: hidden; }
@@ -515,7 +528,7 @@ function renderTutorial() {
     <button class="btn-modal" style="width:100%;margin-top:10px;" onclick="setScreen('dashboard')">Entendi</button>`;
 }
 
-// --- DASHBOARD (com Despertar do Kira) ---
+// --- DASHBOARD (banner do Despertar do Kira corrigido) ---
 async function renderDashboard() {
   await updateGramPrice();
   await refreshUser();
@@ -527,13 +540,16 @@ async function renderDashboard() {
   
   let offerBtn = '';
   if (!userData.hasSurvivalKit) {
-    offerBtn = `<button class="btn-game btn-offer" style="grid-column:1/-1;min-height:70px;margin-bottom:10px;font-size:15px;" onclick="buySurvivalKit()">
-      ⚡ Despertar do Kira<br>
-      <small style="font-size:12px;color:var(--rot-gold-light);">O primeiro passo para se tornar um Deus da Morte</small><br>
-      3 🍎 GRAM ≈ ${formatBRL(3)}
+    offerBtn = `<button class="btn-game btn-offer" style="grid-column:1/-1;min-height:100px;margin-bottom:12px;" onclick="buySurvivalKit()">
+      <span style="color:#ffffff; font-size:18px; font-weight:900;">Despertar do Kira</span>
+      <span style="color:var(--rot-gold-light); font-size:13px;">O primeiro passo para se tornar um Deus da Morte</span>
+      <span style="color:#ffffff; font-size:16px; font-weight:700;">3 🍎 GRAM</span>
     </button>`;
   } else if (!userData.hasStarterPack) {
-    offerBtn = `<button class="btn-game btn-offer" style="grid-column:1/-1;min-height:70px;margin-bottom:10px;font-size:15px;" onclick="buyStarterPack()">🔥 Pacote Kira Iniciante — 8 🍎 GRAM (-51%)</button>`;
+    offerBtn = `<button class="btn-game btn-offer" style="grid-column:1/-1;min-height:100px;margin-bottom:12px;" onclick="buyStarterPack()">
+      <span style="color:#ffffff; font-size:18px; font-weight:900;">🔥 Pacote Kira Iniciante</span>
+      <span style="color:#ffffff; font-size:16px;">8 🍎 GRAM (-51%)</span>
+    </button>`;
   }
 
   document.getElementById('screen-dashboard').innerHTML = `
@@ -785,7 +801,7 @@ async function buySurvivalKit() {
   if(userData.balance < 3) { showModal('❌','Saldo insuficiente (3 🍎 GRAM).'); return; }
   if(userData.inventory.length + 1 > userData.slots) { showModal('📦','Sem espaço! Expanda seu inventário na Loja.'); return; }
   confirmAction('Despertar do Kira', `
-    ⚡ O primeiro passo para se tornar um Deus da Morte<br>
+    O primeiro passo para se tornar um Deus da Morte<br>
     📓 Caderno do Despertar (60 dias)<br>
     • 2 páginas/dia (primeiros 30)<br>
     • 1 página/dia (últimos 30)<br>
@@ -1058,4 +1074,4 @@ window.onload=async()=>{
 function escapeHtml(str){const div=document.createElement('div');div.textContent=str;return div.innerHTML;}
 </script>
 </body>
-</html>
+  </html>

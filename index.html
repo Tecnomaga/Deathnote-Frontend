@@ -157,7 +157,7 @@
       justify-content: center;
       text-align: center;
       gap: 4px;
-      min-height: 90px;
+      min-height: 100px;
       padding: 16px;
       box-sizing: border-box;
     }
@@ -185,6 +185,21 @@
 
     .referral-list { max-height: 200px; overflow-y: auto; margin-top: 8px; }
     .referral-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 14px; }
+
+    /* Celebrate overlay */
+    .celebrate-overlay {
+      position: fixed; inset: 0; z-index: 500; pointer-events: none; display: flex; align-items: center; justify-content: center;
+      font-size: 60px; color: #ffd700; text-shadow: 0 0 30px #ffd700; animation: celebratePop 0.8s ease-out forwards;
+    }
+    @keyframes celebratePop { 0%{transform:scale(0.5);opacity:0} 30%{transform:scale(1.2);opacity:1} 70%{transform:scale(1);opacity:1} 100%{transform:scale(1);opacity:0} }
+    .confetti-piece {
+      position: fixed; width: 8px; height: 14px; background: #ffd700; z-index: 499; pointer-events: none;
+      animation: confettiFall 0.9s ease-out forwards;
+    }
+    @keyframes confettiFall {
+      0% { opacity: 1; transform: translateY(0) rotate(0deg); }
+      100% { opacity: 0; transform: translateY(80vh) rotate(720deg); }
+    }
   </style>
 </head>
 <body>
@@ -342,10 +357,52 @@ function sfxDailySound() {
   });
 }
 
+function sfxCelebration() {
+  if (!audioEnabled || !audioCtx) return;
+  const notes = [523, 659, 784, 1047];
+  notes.forEach((freq, i) => {
+    setTimeout(() => {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.3);
+    }, i * 120);
+  });
+}
+
 function toggleAudio() {
   initAudio();
   audioEnabled = !audioEnabled;
   document.getElementById('audioToggle').textContent = audioEnabled ? '🔊' : '🔇';
+}
+
+// ====== CELEBRAÇÃO ======
+function celebrate(message) {
+  // overlay com emoji
+  const overlay = document.createElement('div');
+  overlay.className = 'celebrate-overlay';
+  overlay.textContent = message || '🎉';
+  document.body.appendChild(overlay);
+  setTimeout(() => overlay.remove(), 900);
+
+  // confetes
+  for (let i = 0; i < 15; i++) {
+    const confetti = document.createElement('div');
+    confetti.className = 'confetti-piece';
+    confetti.style.left = Math.random() * 90 + 'vw';
+    confetti.style.top = Math.random() * 40 + 'vh';
+    confetti.style.background = ['#ffd700','#c4172a','#ddbb6c','#4da6ff','#cc9ee6'][Math.floor(Math.random()*5)];
+    document.body.appendChild(confetti);
+    setTimeout(() => confetti.remove(), 1000);
+  }
+
+  sfxCelebration();
 }
 
 // ====== PARTÍCULAS ======
@@ -528,7 +585,7 @@ function renderTutorial() {
     <button class="btn-modal" style="width:100%;margin-top:10px;" onclick="setScreen('dashboard')">Entendi</button>`;
 }
 
-// --- DASHBOARD (banner do Despertar do Kira corrigido) ---
+// --- DASHBOARD ---
 async function renderDashboard() {
   await updateGramPrice();
   await refreshUser();
@@ -727,6 +784,7 @@ async function pullGacha(q) {
       const resultsHtml=res.results.map(r=>`<span class="rarity-badge rarity-${r.rarity}">${r.rarity}</span> <span class="text-${r.rarity}">${r.name}</span>`).join('<br>');
       document.getElementById('gachaResult').innerHTML=`<div class="glass-card" style="text-align:center;">${resultsHtml}</div>`;
       showModal('🌀',`Obtido:<br>${resultsHtml}`);
+      celebrate('✨');
       sfxPortal();
       setScreen('dashboard');
     }catch(e){showModal('❌',e.message);}
@@ -746,6 +804,7 @@ async function buyFixedNb(rarity) {
       const res=await apiCall('/user/buy-notebook','POST',{rarity});
       userData=res.user;
       showModal('📓',`<span class="rarity-badge rarity-${res.rarity}">${res.rarity}</span> <span class="text-${res.rarity}">${res.notebookName}</span> adquirido!`);
+      celebrate('📓');
       setScreen('dashboard');
     }catch(e){showModal('❌',e.message);}
   });
@@ -812,6 +871,7 @@ async function buySurvivalKit() {
       const res = await apiCall('/user/buy-survival-kit', 'POST');
       userData = res.user;
       showModal('✅', 'Despertar do Kira ativado!');
+      celebrate('⚡');
       setScreen('dashboard');
     } catch(e) { showModal('❌', e.message); }
   });
@@ -830,6 +890,7 @@ async function buyItem(id){
       const res=await apiCall('/user/buy-item','POST',{itemId:id});
       userData=res.user;
       showModal('✅',`${item.name} adquirido!`);
+      celebrate('🎉');
       setScreen('dashboard');
     }catch(e){showModal('❌',e.message);}
   });
@@ -874,7 +935,7 @@ function renderDeposit() {
       <input id="depositAmount" type="number" placeholder="Valor enviado (GRAM)" min="0.5" step="0.1" class="large-input">
       <input id="depositTxid" placeholder="TXID da transação" class="large-input">
       <button class="btn-modal" style="width:100%;margin-top:8px;" onclick="submitDeposit()">Enviar Comprovante</button>
-      <p style="font-size:12px;color:var(--ash);margin-top:8px;">O administrador creditará manualmente.</p>
+      <p style="font-size:12px;color:var(--ash);margin-top:8px;">Depósitos são aprovados manualmente em até 2 horas.</p>
     </div>`;
 }
 
@@ -901,6 +962,7 @@ function renderWithdraw() {
     <div class="glass-card" style="padding:18px;text-align:center;">
       <p style="font-size:18px;color:var(--rot-gold-light);">📤 Saldo: <b>${(userData?.balance||0).toFixed(2)} 🍎 GRAM</b> <span style="font-size:0.8em;color:#8a9bb5;">${formatBRL(userData?.balance||0)}</span></p>
       <p style="font-size:14px;color:var(--ash);">Taxa de 5% (inclui rede). Mínimo 1 🍎 GRAM.</p>
+      <p style="font-size:12px;color:var(--ash);">Saques disponíveis apenas entre 08h e 22h (horário de Brasília).</p>
       <input id="withdrawAddr" placeholder="Sua carteira TON" class="large-input">
       <input id="withdrawAmount" type="number" placeholder="Valor em GRAM" min="1" step="0.1" class="large-input">
       <button class="btn-modal" style="width:100%;" onclick="requestWithdraw()">Solicitar Saque</button>
@@ -1074,4 +1136,4 @@ window.onload=async()=>{
 function escapeHtml(str){const div=document.createElement('div');div.textContent=str;return div.innerHTML;}
 </script>
 </body>
-  </html>
+</html>

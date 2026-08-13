@@ -199,6 +199,22 @@
       0% { opacity: 1; transform: translateY(0) rotate(0deg); }
       100% { opacity: 0; transform: translateY(80vh) rotate(720deg); }
     }
+
+    .anagram-word {
+      font-family: 'Cinzel', serif;
+      font-size: clamp(28px, 8vw, 40px);
+      letter-spacing: 8px;
+      color: var(--rot-gold-light);
+      text-shadow: 0 0 20px rgba(221,187,108,0.5);
+      background: rgba(0,0,0,0.5);
+      border: 2px solid var(--rot-gold);
+      border-radius: 8px;
+      padding: 16px;
+      margin: 16px 0;
+      width: 100%;
+      text-align: center;
+      word-break: break-all;
+    }
   </style>
 </head>
 <body>
@@ -232,6 +248,7 @@
   <div id="screen-profile" class="screen"></div>
   <div id="screen-referral" class="screen"></div>
   <div id="screen-history" class="screen"></div>
+  <div id="screen-anagram" class="screen"></div>
 </div>
 
 <div class="writing-overlay" id="writingOverlay"><div class="paper" id="writingPaper"></div></div>
@@ -247,6 +264,9 @@ let userData = null;
 let targets = [];
 let targetIndex = null;
 let gramPriceBRL = null;
+let anagramAlreadyPlayed = false;
+let anagramStreak = 0;
+let anagramRewardLabel = '';
 
 // ====== ÁUDIO ======
 let audioCtx = null;
@@ -542,7 +562,8 @@ function updateScreenContent(id) {
     intro: renderIntro, tutorial: renderTutorial, dashboard: renderDashboard,
     targets: renderTargets, gacha: renderGacha, shop: renderShop,
     inventory: renderInventory, deposit: renderDeposit, withdraw: renderWithdraw,
-    profile: renderProfile, referral: renderReferral, history: renderHistory
+    profile: renderProfile, referral: renderReferral, history: renderHistory,
+    anagram: renderAnagram
   };
   if (fn[id]) fn[id]();
 }
@@ -574,7 +595,8 @@ function renderTutorial() {
       '🔥 3. Nível Kira','Cada execução bem‑sucedida concede XP. Nível máximo 20. Cada nível +0,5% chance de acerto.',
       '🎁 4. Presente Diário','Jogadores gratuitos reduzem 2% de suspeita. Jogadores com cadernos pagos ganham 0.01 🍎 GRAM/dia + bônus.',
       '🕵️ 5. Suspeita e Prisão','Cada execução aumenta a suspeita. 100% = prisão por 1-3 dias, sem poder escrever.',
-      '👥 6. Referral','Convide amigos e ganhe 5% das recargas deles.'].reduce((a, v, i) => {
+      '👥 6. Referral','Convide amigos e ganhe 5% das recargas deles.',
+      '🧩 7. Anagrama do Near','Desembaralhe a palavra do dia e ganhe recompensas especiais. Streak de 7 dias dá Olho de Shinigami!'].reduce((a, v, i) => {
         if (i % 2 === 0) a.push(`<div class="tutorial-step"><h3>${v}</h3>`);
         else a[a.length-1] += `<p>${v}</p></div>`;
         return a;
@@ -634,6 +656,7 @@ async function renderDashboard() {
       <button class="btn-game" onclick="setScreen('profile')">🎭 Perfil</button>
       <button class="btn-game" onclick="setScreen('referral')">👥 Referral</button>
       <button class="btn-game" onclick="setScreen('history')">📜 Histórico</button>
+      <button class="btn-game" onclick="setScreen('anagram')">🧩 Anagrama</button>
       <button class="btn-game" onclick="claimDaily()">🎁 Diário</button>
     </div>`;
 }
@@ -743,7 +766,7 @@ async function executePlay(t) {
   setScreen('dashboard');
 }
 
-// --- GACHA (sem BRL) ---
+// --- GACHA ---
 function renderGacha() {
   document.getElementById('screen-gacha').innerHTML = `
     <div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Portal</div></div>
@@ -952,7 +975,7 @@ async function submitDeposit(){
   });
 }
 
-// --- WITHDRAW (mínimo 2 GRAM, com BRL) ---
+// --- WITHDRAW ---
 function renderWithdraw() {
   document.getElementById('screen-withdraw').innerHTML = `
     <div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">Saque</div></div>
@@ -985,7 +1008,7 @@ async function requestWithdraw(){
   });
 }
 
-// --- PROFILE (com BRL) ---
+// --- PROFILE ---
 function renderProfile() {
   if(!userData)return;
   const nb=activeNb();
@@ -1083,6 +1106,68 @@ function switchHistoryTab(tab) {
   document.getElementById('tabTransacoes').classList.toggle('active', tab==='transacoes');
   document.getElementById('historyExecucoes').style.display = tab==='execucoes'?'block':'none';
   document.getElementById('historyTransacoes').style.display = tab==='transacoes'?'block':'none';
+}
+
+// --- ANAGRAMA ---
+async function renderAnagram() {
+  if(!userData)return;
+  try {
+    const data = await apiCall('/user/anagram');
+    anagramAlreadyPlayed = data.alreadyPlayed;
+    anagramStreak = data.streak || 0;
+    anagramRewardLabel = data.rewardLabel || '';
+
+    document.getElementById('screen-anagram').innerHTML = `
+      <div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">🧩 Anagrama do Near</div></div>
+      <div class="glass-card" style="text-align:center;padding:20px;">
+        <p style="font-size:16px;color:var(--rot-gold-light);">Desembaralhe a palavra e ganhe sua recompensa diária.</p>
+        <div class="anagram-word">${data.shuffled.toUpperCase()}</div>
+        <p style="font-size:13px;color:var(--ash);margin:8px 0;">Recompensa de hoje: <b style="color:#c9a03a;">${anagramRewardLabel}</b></p>
+        <p style="font-size:14px;color:var(--rot-gold-light);">🔥 Streak: ${anagramStreak} dia(s)</p>
+      </div>
+      ${anagramAlreadyPlayed ? `
+        <div class="glass-card" style="text-align:center;padding:20px;background:rgba(0,80,0,0.2);">
+          <p style="font-size:16px;color:#4caf50;">✅ Você já resolveu o anagrama de hoje!</p>
+          <p style="font-size:14px;color:var(--ash);margin-top:8px;">Volte amanhã para continuar sua sequência.</p>
+        </div>
+      ` : `
+        <div class="glass-card" style="padding:18px;">
+          <input class="writing-input" id="anagramInput" placeholder="Sua resposta..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+          <button class="btn-modal" style="width:100%;margin-top:8px;" onclick="submitAnagram()">Confirmar</button>
+        </div>
+      `}
+    `;
+  } catch(e) {
+    document.getElementById('screen-anagram').innerHTML = `
+      <div class="app-header"><button class="back-btn" onclick="setScreen('dashboard')">←</button><div class="logo">🧩 Anagrama do Near</div></div>
+      <div class="glass-card" style="text-align:center;padding:20px;">
+        <p style="color:var(--ash);">Erro ao carregar o anagrama.</p>
+      </div>`;
+  }
+}
+
+async function submitAnagram() {
+  const answer = document.getElementById('anagramInput')?.value.trim();
+  if (!answer) { showModal('❌', 'Digite sua resposta.'); return; }
+
+  try {
+    const res = await apiCall('/user/anagram', 'POST', { answer });
+    if (res.success) {
+      userData = res.user || userData;
+      anagramStreak = res.streak;
+      anagramAlreadyPlayed = true;
+      celebrate('🧩');
+      showModal('✅', `Resposta correta!\n${res.reward}${res.bonus ? '\n' + res.bonus : ''}`);
+      renderAnagram();
+    } else {
+      anagramAlreadyPlayed = true;
+      anagramStreak = 0;
+      showModal('❌', res.message || 'Resposta incorreta.');
+      renderAnagram();
+    }
+  } catch(e) {
+    showModal('❌', e.message);
+  }
 }
 
 // --- DAILY ---
